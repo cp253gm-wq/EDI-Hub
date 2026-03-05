@@ -26,7 +26,7 @@
       .getStaffNames();
 
     document.getElementById('userDropdown').addEventListener('change', fetchTasks);
-    document.getElementById('statusFilter').addEventListener('change', renderTasks);
+    document.getElementById('statusFilter').addEventListener('change', fetchTasks);
     document.getElementById('typeFilter').addEventListener('change', renderTasks);
   });
 
@@ -36,10 +36,19 @@
     if (!user) return;
     container.innerHTML = '<div class="loading">Fetching your items...</div>';
     
-    google.script.run.withSuccessHandler(function(tasks) {
-      globalTasks = tasks || [];
-      renderTasks();
-    }).getTasksForUser(user);
+    var statusFilter = document.getElementById('statusFilter').value;
+var includeArchived = (statusFilter === "Archived" || statusFilter === "All");
+
+google.script.run
+  .withSuccessHandler(function(tasks) {
+    globalTasks = tasks || [];
+    renderTasks();
+  })
+  .withFailureHandler(function(err) {
+    console.error("getTasksForUser failed:", err);
+    container.innerHTML = '<div class="loading">Error loading items. Check Apps Script → Executions.</div>';
+  })
+  .getTasksForUser(user, { includeArchived: includeArchived });
   }
 
   function requestToggleStatus(itemId, targetStatus) {
@@ -468,8 +477,8 @@
         html += '<div class="card-buttons">';
         
         if (s === 'Archived') {
-           html += '<button class="btn-seen" style="background:#f1f3f4; color:#5f6368; cursor:default;" disabled>Auto-Archived</button>';
-        } else {
+   html += '<button class="btn-seen" style="background:#f1f3f4; color:#5f6368; cursor:default;" disabled>Archived</button>';
+} else {
             if (t.actionReq) {
               var pendText = (s === 'Pending') ? "Pending... (Click to Undo)" : "Mark Pending";
               var compText = (s === 'Complete') ? "Complete (Click to Undo)" : "Mark Complete";
@@ -491,9 +500,9 @@
             }
         }
 
-        if (calUrl) {
-          html += '<a href="' + calUrl + '" target="_blank" class="btn-calendar">📅&nbsp; Add to Calendar</a>';
-        }
+       if (calUrl && s !== 'Archived') {
+  html += '<a href="' + calUrl + '" target="_blank" class="btn-calendar">📅&nbsp; Add to Calendar</a>';
+}
         
         var bottomTagsHtml = archiveTagHtml + timeRemainingTagHtml + overdueTagHtml;
         if (bottomTagsHtml !== "") {

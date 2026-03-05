@@ -86,22 +86,88 @@ function prepareTemplate() {
 // --- KEEP YOUR OTHER HELPER FUNCTIONS EXACTLY AS THEY ARE BELOW THIS LINE ---
 // function getBase64FromDrive(fileId) { ...
 // function getStaffNames() { ...
-// function getTasksForUser(user) { ...
+// function getTasksForUser(user, options) { ...
 // function logItemStatus(itemId, user, status) { ...
+// --- CACHING HELPER FUNCTIONS ---
+const SCRIPT_CACHE = CacheService.getScriptCache();
 
 // --- HELPER FUNCTION ---
+/**
+ * Retrieves and parses a JSON string from the cache.
+ * @param {string} key The cache key.
+ * @returns {Object|null} The parsed object or null if not found or invalid.
+ */
+function cacheGetJson_(key) {
+  const cached = SCRIPT_CACHE.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) {
+      Logger.log('Failed to parse cached JSON for key: ' + key);
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Stringifies and puts a JSON object into the cache.
+ * @param {string} key The cache key.
+ * @param {Object} obj The object to cache.
+ * @param {number} ttlSeconds The time-to-live in seconds.
+ */
+function cachePutJson_(key, obj, ttlSeconds) {
+  try {
+    const jsonString = JSON.stringify(obj);
+    SCRIPT_CACHE.put(key, jsonString, ttlSeconds);
+  } catch (e) {
+    Logger.log('Failed to stringify or cache object for key: ' + key);
+  }
+}
+
+/**
+ * Removes one or more keys from the cache.
+ * @param {string|string[]} keyOrArray A single key or an array of keys.
+ */
+function cacheRemove_(keyOrArray) {
+  if (Array.isArray(keyOrArray)) {
+    SCRIPT_CACHE.removeAll(keyOrArray);
+  } else {
+    SCRIPT_CACHE.remove(keyOrArray);
+  }
+}
+
+/**
+ * Clears the task cache for a specific user.
+ * @param {string} user The user's name.
+ */
+function clearUserTasksCache_(user) {
+  if (!user) return;
+  const base = "edi:tasks:" + String(user).toLowerCase().trim() + ":v3";
+  cacheRemove_([base + ":noArchived", base + ":withArchived"]);
+}
+
+// =========================================================================
+// --- DATA & API FUNCTIONS ---
+
 function getBase64FromDrive(fileId) {
   try {
     var file = DriveApp.getFileById(fileId);
     var base64 = Utilities.base64Encode(file.getBlob().getBytes());
     return 'data:' + file.getMimeType() + ';base64,' + base64; 
   } catch (error) {
-    Logger.log("Failed to load image ID: " + fileId);
+    Logger.log("Failed to load image ID: " + fileId + ". Error: " + error.message);
     return ''; 
   }
 }
 
 function getStaffNames() {
+  const CACHE_KEY = "edi:staffNames:v1";
+  const cachedNames = cacheGetJson_(CACHE_KEY);
+  if (cachedNames) {
+    return cachedNames;
+  }
+
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Data"); 
@@ -114,24 +180,111 @@ function getStaffNames() {
         if (nameStr !== "") names.push(nameStr);
       }
     }
+    cachePutJson_(CACHE_KEY, names, 21600); // Cache for 6 hours
     return names;
   } catch (e) { 
+    Logger.log("Error in getStaffNames: " + e.message);
     return ["Error: Check Data Sheet"]; 
   }
 }
 
-function getTasksForUser(user) {
+function getLatestStatusMapForUser_(user) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Logs");
+  var statusMap = {};
+
+  if (!sheet || sheet.getLastRow() < 1) return statusMap;
+
+  var userKey = String(user || "").toLowerCase().trim();
+
+  var lastRow = sheet.getLastRow();
+  var startRow = Math.max(1, lastRow - 2000 + 1);
+  var numRows = lastRow - startRow + 1;
+
+  var data = sheet.getRange(startRow, 1, numRows, 4).getValues();
+  // Columns: [timestamp, itemId, user, status]
+
+  for (var i = data.length - 1; i >= 0; i--) {
+    var row = data[i];
+    var itemId = row[1];
+    var logUser = String(row[2] || "").toLowerCase().trim();
+    var logStatus = row[3];
+
+    if (!itemId || !logStatus) continue;
+    if (logUser !== userKey) continue; // per-user
+
+    var idStr = String(itemId).trim();
+    if (!(idStr in statusMap)) {
+      statusMap[idStr] = String(logStatus);
+    }
+  }
+
+  return statusMap;
+}
+
+/**
+ * Gets a map of manually archived item IDs from the 'Archive_Index' sheet.
+ * Caches the result for 5 minutes.
+ * @returns {Object} An object where keys are archived item IDs, e.g., { 'id1': true }.
+ */
+function getArchivedIdMap_() {
+  const CACHE_KEY = "edi:archiveIds:v1";
+  const cachedMap = cacheGetJson_(CACHE_KEY);
+  if (cachedMap) {
+    return cachedMap;
+  }
+
+  const idMap = {};
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Archive_Index");
+    if (sheet && sheet.getLastRow() > 1) {
+      // Start from row 2 to skip potential header
+      const range = sheet.getRange("A2:A" + sheet.getLastRow());
+      const data = range.getValues();
+      for (let i = 0; i < data.length; i++) {
+        if (data[i][0]) {
+          idMap[String(data[i][0]).trim()] = true;
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log("Error reading Archive_Index sheet: " + e.message);
+  }
+  
+  cachePutJson_(CACHE_KEY, idMap, 300); // Cache for 5 minutes
+return idMap;
+}
+
+function getTasksForUser(user, options) {
+
+  options = options || {}; // ensure options exists
+  var includeArchived = options.includeArchived === true;
+
+  const searchName = String(user).toLowerCase().trim();
+  var archivedFlag = includeArchived ? "withArchived" : "noArchived";
+  const CACHE_KEY = "edi:tasks:" + searchName + ":v3:" + archivedFlag;
+
+  const cachedTasks = cacheGetJson_(CACHE_KEY);
+  if (cachedTasks) {
+    return cachedTasks;
+  }
+
+options = options || {};
+var includeArchived = options.includeArchived === true;
+
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Imported_Data");
     if (!sheet) return [];
     
     var data = sheet.getDataRange().getValues();
+    var latestStatusMap = getLatestStatusMapForUser_(user);
     var tasks = [];
-    var searchName = String(user).toLowerCase().trim();
 
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
+
       if (!row[3]) continue; 
       
       var assignedValue = String(row[3]).toLowerCase().trim();
@@ -203,10 +356,13 @@ function getTasksForUser(user) {
           }
         }
 
-        // Drop the task entirely if it hit the archive deadline
-        if (isArchived) continue;
+        // If auto-archived, only include it when requested (Archived filter / All)
+if (isArchived && !includeArchived) continue;
 
         function makeSafe(d) { return (d instanceof Date) ? d.toISOString() : String(d); }
+
+        var idStr = String(row[0]).trim();
+var resolvedStatus = isArchived ? "Archived" : (latestStatusMap[idStr] || row[16] || "Active");
 
         tasks.push({
           id: row[0],
@@ -226,21 +382,61 @@ function getTasksForUser(user) {
           vacationEndDate: makeSafe(vacationEndDate),
           deadlineDate: makeSafe(deadlineDate),
           deadlineTime: makeSafe(deadlineTime),
-          status: row[16] || "Active",
+          status: resolvedStatus,
           displayDate: displayDate,   
           archiveLabel: archiveLabel  
         });
       }
     }
+    
+    cachePutJson_(CACHE_KEY, tasks, 60); // Cache for 60 seconds
     return tasks;
   } catch (e) {
+    Logger.log('Error in getTasksForUser for ' + user + ': ' + e.message);
     return [];
   }
 }
 
 function logItemStatus(itemId, user, status) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Logs") || ss.insertSheet("Logs");
-  sheet.appendRow([new Date(), itemId, user, status]);
-  return true;
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Logs") || ss.insertSheet("Logs");
+    sheet.appendRow([new Date(), itemId, user, status]);
+
+    // Invalidate the cache for this user's tasks
+    clearUserTasksCache_(user);
+
+    return true;
+
+  } catch (e) {
+    Logger.log('Failed to log item status: ' + e.message);
+    return false;
+  }
+}
+
+/**
+ * Archives an item by adding its ID to the Archive_Index sheet.
+ * This is exposed to the client-side.
+ * @param {string} itemId The ID of the item to archive.
+ * @param {string} user The user performing the action.
+ * @returns {Object} An object indicating success or failure.
+ */
+function archiveItem(itemId, user) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Archive_Index") || ss.insertSheet("Archive_Index");
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(["ItemID", "ArchiveTimestamp"]); // Add header if new
+    }
+    sheet.appendRow([itemId, new Date()]);
+
+    // Invalidate caches
+    cacheRemove_("edi:archiveIds:v1");
+    clearUserTasksCache_(user);
+
+    return { success: true, message: "Item " + itemId + " archived." };
+  } catch (e) {
+    Logger.log("Failed to archive item " + itemId + ": " + e.message);
+    return { success: false, message: "Failed to archive item." };
+  }
 }
