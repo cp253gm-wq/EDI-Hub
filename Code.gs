@@ -32,6 +32,7 @@ function onOpen() {
 }
 
 function openDashboard() {
+  
   var template = prepareTemplate(); // Fetches data using the helper function below
   
   // Evaluate and open the dialog in Sheets
@@ -52,6 +53,10 @@ function doGet(e) {
       .setTitle('EDI Hub')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 // --- 3. HELPER FUNCTION TO LOAD DATA (Used by both doors!) ---
