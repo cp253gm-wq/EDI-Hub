@@ -61,7 +61,7 @@ function include(filename) {
 
 // --- 3. HELPER FUNCTION TO LOAD DATA (Used by both doors!) ---
 function prepareTemplate() {
-  var template = HtmlService.createTemplateFromFile('Index');
+  var template = HtmlService.createTemplateFromFile('Main');
   
   // Fetch your Logo
   template.logoData = getBase64FromDrive('19mPJKHJqa1jxhncy_vMKL2Ji75bzX8Zb');
