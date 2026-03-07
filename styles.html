@@ -210,6 +210,31 @@
       @keyframes skeleton-shimmer {
         100% { transform: translateX(100%); }
       }
+
+      #taskContainer {
+        opacity: 1;
+        transition: opacity 0.16s ease;
+        will-change: opacity;
+      }
+      #taskContainer.list-fade-out {
+        opacity: 0;
+      }
+      #taskContainer.list-fade-in {
+        animation: task-container-fade-in 0.2s ease;
+      }
+      @keyframes task-container-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #taskContainer {
+          transition: none;
+        }
+        #taskContainer.list-fade-in {
+          animation: none;
+        }
+      }
       
       .loading { text-align: center; padding: 60px; color: #66758a; font-size: 14px; }
 
