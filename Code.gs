@@ -222,40 +222,6 @@ function getLatestStatusMapForUser_(user) {
   return statusMap;
 }
 
-/**
- * Gets a map of manually archived item IDs from the 'Archive_Index' sheet.
- * Caches the result for 5 minutes.
- * @returns {Object} An object where keys are archived item IDs, e.g., { 'id1': true }.
- */
-function getArchivedIdMap_() {
-  const CACHE_KEY = "edi:archiveIds:v1";
-  const cachedMap = cacheGetJson_(CACHE_KEY);
-  if (cachedMap) {
-    return cachedMap;
-  }
-
-  const idMap = {};
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName("Archive_Index");
-    if (sheet && sheet.getLastRow() > 1) {
-      // Start from row 2 to skip potential header
-      const range = sheet.getRange("A2:A" + sheet.getLastRow());
-      const data = range.getValues();
-      for (let i = 0; i < data.length; i++) {
-        if (data[i][0]) {
-          idMap[String(data[i][0]).trim()] = true;
-        }
-      }
-    }
-  } catch (e) {
-    Logger.log("Error reading Archive_Index sheet: " + e.message);
-  }
-  
-  cachePutJson_(CACHE_KEY, idMap, 300); // Cache for 5 minutes
-return idMap;
-}
-
 function getTasksForUser(user, options) {
 
   options = options || {}; // ensure options exists
@@ -411,32 +377,5 @@ function logItemStatus(itemId, user, status) {
   } catch (e) {
     Logger.log('Failed to log item status: ' + e.message);
     return false;
-  }
-}
-
-/**
- * Archives an item by adding its ID to the Archive_Index sheet.
- * This is exposed to the client-side.
- * @param {string} itemId The ID of the item to archive.
- * @param {string} user The user performing the action.
- * @returns {Object} An object indicating success or failure.
- */
-function archiveItem(itemId, user) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName("Archive_Index") || ss.insertSheet("Archive_Index");
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["ItemID", "ArchiveTimestamp"]); // Add header if new
-    }
-    sheet.appendRow([itemId, new Date()]);
-
-    // Invalidate caches
-    cacheRemove_("edi:archiveIds:v1");
-    clearUserTasksCache_(user);
-
-    return { success: true, message: "Item " + itemId + " archived." };
-  } catch (e) {
-    Logger.log("Failed to archive item " + itemId + ": " + e.message);
-    return { success: false, message: "Failed to archive item." };
   }
 }
