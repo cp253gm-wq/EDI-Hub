@@ -34,7 +34,7 @@
     var user = document.getElementById('userDropdown').value;
     var container = document.getElementById('taskContainer');
     if (!user) return;
-    container.innerHTML = '<div class="loading">Fetching your items...</div>';
+    container.innerHTML = renderTaskSkeletons(4);
     
     var statusFilter = document.getElementById('statusFilter').value;
 var includeArchived = (statusFilter === "Archived" || statusFilter === "All");
@@ -49,6 +49,30 @@ google.script.run
     container.innerHTML = '<div class="loading">Error loading items. Check Apps Script → Executions.</div>';
   })
   .getTasksForUser(user, { includeArchived: includeArchived });
+  }
+
+  function renderTaskSkeletons(count) {
+    var total = count || 4;
+    var html = '<div class="skeleton-list">';
+    for (var i = 0; i < total; i++) {
+      html += '<div class="task-card skeleton-card">' +
+              '<div class="skeleton-header">' +
+              '<div class="skeleton-icon shimmer"></div>' +
+              '<div class="skeleton-head-text">' +
+              '<div class="skeleton-line skeleton-title shimmer"></div>' +
+              '<div class="skeleton-line skeleton-meta shimmer"></div>' +
+              '</div>' +
+              '</div>' +
+              '<div class="skeleton-line skeleton-body shimmer"></div>' +
+              '<div class="skeleton-line skeleton-body short shimmer"></div>' +
+              '<div class="skeleton-buttons">' +
+              '<div class="skeleton-btn shimmer"></div>' +
+              '<div class="skeleton-btn shimmer"></div>' +
+              '</div>' +
+              '</div>';
+    }
+    html += '</div>';
+    return html;
   }
 
   function requestToggleStatus(itemId, targetStatus) {
@@ -311,7 +335,12 @@ google.script.run
         
         var iconSrc = categoryIcons[iconKey] || categoryIcons["Default"];
 
-        html += '<div class="task-card" style="margin-bottom: 15px; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
+        var isUrgentPriority = prio.toLowerCase() === 'urgent';
+        var isOverdueActive = checkOverdue(t, now);
+        var cardClassName = 'task-card';
+        if (isUrgentPriority) cardClassName += ' card-urgent';
+        if (isOverdueActive) cardClassName += ' card-overdue';
+        html += '<div class="' + cardClassName + '" style="margin-bottom: 15px; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
         
         // 1. Align to top instead of center
         html += '<div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 12px;">';
@@ -347,8 +376,6 @@ google.script.run
         
         // --- UPDATED: ARCHIVE COUNTDOWN INTEGRATION ---
         var archiveTagHtml = t.archiveLabel ? '<span class="archive-tag">📦 ' + t.archiveLabel + '</span>' : "";
-        
-        var isOverdueActive = checkOverdue(t, now);
         
         if (isOverdueActive) {
             overdueTagHtml = '<span class="tag-overdue">🚨 Overdue!</span>';
@@ -621,7 +648,7 @@ google.script.run
       } 
     } 
     
-    container.innerHTML = html || getEmptyStateHtml(statusFilter, 'No items match your selected filters.');
+    container.innerHTML = html || getEmptyStateHtml(statusFilter, 'No items match your selected filters...');
     if (html) {
       applyClampVisibilityFix();
     }
