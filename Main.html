@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+<?!= include('styles'); ?>
+  </head>
+  <body>
+    <div class="app-toolbar">
+      <div class="logo-container">
+        <img src="<?!= logoData ?>" alt="Logo" id="appLogo">
+      </div>
+      <div class="toolbar-controls">
+        <select id="typeFilter">
+          <option value="All">All Types</option>
+          <option value="Deadline">Deadline</option>
+          <option value="Task">Task</option>
+          <option value="Event">Event</option>
+          <option value="Information">Information</option>
+          <option value="Vacation">Vacation</option>
+        </select>
+        <select id="statusFilter">
+          <option value="Active">View Status: Active</option>
+          <option value="Seen">View Status: Seen</option>
+          <option value="Complete">View Status: Completed</option>
+          <option value="Pending">View Status: Pending</option>
+          <option value="Archived">View Status: Archived</option>
+          <option value="Cancelled">View Status: Cancelled</option>
+          <option value="All">View All Statuses</option>
+        </select>
+        <select id="userDropdown"><option value="">-- Loading --</option></select>
+      </div>
+    </div>
+
+    <div class="container" id="taskContainer">
+      <div class="loading">Please select your name to view items.</div>
+    </div>
+
+    <div class="modal-overlay" id="customModal">
+      <div class="modal-dialog">
+        <div class="modal-title" id="modalTitle">Confirm Action</div>
+        <div class="modal-message" id="modalMessage">Are you sure?</div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-modal-confirm" id="modalConfirmBtn" onclick="executeModalAction()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+<script>
+  const categoryIcons = <?!= iconsJSON ?>;
+</script>
+<?!= include('app'); ?>
+
+  </body>
+</html>

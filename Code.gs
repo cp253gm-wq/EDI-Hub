@@ -257,17 +257,20 @@ var includeArchived = options.includeArchived === true;
       
       if (assignedValue.indexOf(searchName) !== -1 || assignedValue.indexOf("all") !== -1) {
         
+        var idStr = String(row[0]).trim();
         var dateAdded         = row[1] || "";  // Column B
         var eventStartDate    = row[9] || "";  // Column J (Date)
-        var eventStartTime    = row[10] || ""; // Column K (Time)
-        var eventEndTime      = row[11] || ""; // Column L (Time)
-        var vacationStartDate = row[12] || ""; // Column M (Date)
-        var vacationEndDate   = row[13] || ""; // Column N (Date)
-        var deadlineDate      = row[14] || ""; // Column O (Date)
-        var deadlineTime      = row[15] || ""; // Column P (Time)
+        var eventEndDate      = row[10] || ""; // Column K (Date)
+        var eventStartTime    = row[11] || ""; // Column L (Time)
+        var eventEndTime      = row[12] || ""; // Column M (Time)
+        var vacationStartDate = row[13] || ""; // Column N (Date)
+        var vacationEndDate   = row[14] || ""; // Column O (Date)
+        var deadlineDate      = row[15] || ""; // Column P (Date)
+        var deadlineTime      = row[16] || ""; // Column Q (Time)
+        var baseStatus = latestStatusMap[idStr] || row[17] || "Active";
 
         var rawStart = eventStartDate || vacationStartDate || deadlineDate; 
-        var rawEnd = vacationEndDate || deadlineDate; 
+        var rawEnd = eventEndDate || vacationEndDate || deadlineDate; 
         
         var primaryStart = rawStart ? new Date(rawStart) : null;
         var primaryEnd = rawEnd ? new Date(rawEnd) : null;
@@ -279,15 +282,15 @@ var includeArchived = options.includeArchived === true;
         // Calculate DD/MM/YYYY - DD/MM/YYYY
         var displayDate = "";
         if (isValidDate(primaryStart)) {
-          var sStr = Utilities.formatDate(primaryStart, Session.getScriptTimeZone(), "dd/MM/yyyy");
+          var sStr = Utilities.formatDate(primaryStart, Session.getScriptTimeZone(), "EEE dd/MM/yyyy");
           if (isValidDate(primaryEnd)) {
-            var eStr = Utilities.formatDate(primaryEnd, Session.getScriptTimeZone(), "dd/MM/yyyy");
+            var eStr = Utilities.formatDate(primaryEnd, Session.getScriptTimeZone(), "EEE dd/MM/yyyy");
             displayDate = (sStr === eStr) ? sStr : (sStr + " - " + eStr);
           } else {
             displayDate = sStr;
           }
         } else if (isValidDate(primaryEnd)) {
-          displayDate = Utilities.formatDate(primaryEnd, Session.getScriptTimeZone(), "dd/MM/yyyy");
+          displayDate = Utilities.formatDate(primaryEnd, Session.getScriptTimeZone(), "EEE dd/MM/yyyy");
         }
 
         // Calculate 72-Hour / 2-Week Archive rule
@@ -298,8 +301,25 @@ var includeArchived = options.includeArchived === true;
 
         var archiveLabel = "";
         var isArchived = false;
+        var archiveSortDate = activeTargetDate;
+        var categoryLower = String(row[2] || "").toLowerCase();
+        var statusLower = String(baseStatus || "").toLowerCase();
+        var isClosedStatus = (statusLower === "complete" || statusLower === "archived" || statusLower === "cancelled");
+        var isOverdueDeadline = false;
 
-        if (isValidDate(activeTargetDate)) {
+        if (categoryLower.indexOf("deadline") !== -1 && !isClosedStatus && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
+          var dLineD = new Date(deadlineDate);
+          var dLineT = deadlineTime ? new Date(deadlineTime) : null;
+          var targetDeadline = new Date(dLineD.getTime());
+          if (dLineT instanceof Date && !isNaN(dLineT.getTime())) {
+            targetDeadline.setHours(dLineT.getHours(), dLineT.getMinutes(), 0, 0);
+          } else {
+            targetDeadline.setHours(23, 59, 59, 999);
+          }
+          isOverdueDeadline = now.getTime() > targetDeadline.getTime();
+        }
+
+        if (isValidDate(activeTargetDate) && !isOverdueDeadline) {
           var timeSinceExpiry = now.getTime() - activeTargetDate.getTime();
           if (timeSinceExpiry >= ms72Hours) {
             isArchived = true;
@@ -312,6 +332,7 @@ var includeArchived = options.includeArchived === true;
           var dAddedValid = new Date(dateAdded);
           if (isValidDate(dAddedValid)) {
             var timeSinceAdded = now.getTime() - dAddedValid.getTime();
+            archiveSortDate = dAddedValid;
             if (timeSinceAdded >= ms2Weeks) {
               isArchived = true;
             } else if (timeSinceAdded >= (ms2Weeks - ms72Hours)) {
@@ -327,8 +348,7 @@ if (isArchived && !includeArchived) continue;
 
         function makeSafe(d) { return (d instanceof Date) ? d.toISOString() : String(d); }
 
-        var idStr = String(row[0]).trim();
-var resolvedStatus = isArchived ? "Archived" : (latestStatusMap[idStr] || row[16] || "Active");
+var resolvedStatus = isArchived ? "Archived" : baseStatus;
 
         tasks.push({
           id: row[0],
@@ -341,16 +361,17 @@ var resolvedStatus = isArchived ? "Archived" : (latestStatusMap[idStr] || row[16
           actionReq: row[7] || "",
           link: row[8] || "", 
           eventStartDate: makeSafe(eventStartDate),
-          eventEndDate: "",                       // <-- FIXED: No longer crashes looking for missing variable
+          eventEndDate: makeSafe(eventEndDate),
           eventStartTime: makeSafe(eventStartTime),
-          eventEndTime: makeSafe(eventEndTime),   // <-- FIXED: Properly mapped to Column L instead of ""
+          eventEndTime: makeSafe(eventEndTime),
           vacationStartDate: makeSafe(vacationStartDate),
           vacationEndDate: makeSafe(vacationEndDate),
           deadlineDate: makeSafe(deadlineDate),
           deadlineTime: makeSafe(deadlineTime),
           status: resolvedStatus,
           displayDate: displayDate,   
-          archiveLabel: archiveLabel  
+          archiveLabel: archiveLabel,
+          archiveSortDate: makeSafe(archiveSortDate || dateAdded)
         });
       }
     }

@@ -131,6 +131,34 @@ google.script.run
     return linked.replace(/\n\n/g, '<div class="half-break"></div>').replace(/\n/g, '<br>');
   }
 
+  function switchStatusFilter(statusValue) {
+    document.getElementById('statusFilter').value = statusValue;
+    fetchTasks();
+  }
+
+  function getEmptyStateHtml(statusFilter, message) {
+    if (statusFilter === 'Seen' || statusFilter === 'Complete' || statusFilter === 'Pending') {
+      return '<div class="loading">' + message + '<br><br><a href="#" onclick="switchStatusFilter(\'Active\'); return false;">Click to View Status: Active</a></div>';
+    }
+    return '<div class="loading">' + message + '</div>';
+  }
+
+  function applyClampVisibilityFix() {
+    var wrappers = document.querySelectorAll('#taskContainer .text-wrapper.clamped');
+    for (var i = 0; i < wrappers.length; i++) {
+      var wrapper = wrappers[i];
+      var target = wrapper.querySelector('.clamp-target');
+      var btn = wrapper.querySelector('.toggle-link');
+      if (!target || !btn) continue;
+
+      var truncated = (target.scrollHeight > target.clientHeight + 1) || (target.scrollWidth > target.clientWidth + 1);
+      if (!truncated) {
+        wrapper.classList.remove('clamped');
+        btn.remove();
+      }
+    }
+  }
+
   function parseDateOnly(dStr) {
     if (!dStr || String(dStr).trim() === "") return null;
     var d = new Date(dStr);
@@ -147,9 +175,11 @@ google.script.run
 
   function formatD(d) {
     if (!d) return "";
+    var dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var dow = dayNames[d.getDay()] || "";
     var day = ("0" + d.getDate()).slice(-2);
     var month = ("0" + (d.getMonth() + 1)).slice(-2);
-    return day + "/" + month + "/" + d.getFullYear();
+    return dow + " " + day + "/" + month + "/" + d.getFullYear();
   }
   
   function formatT(d) {
@@ -212,13 +242,19 @@ google.script.run
     var currentUser = document.getElementById('userDropdown').value; 
     
     if (globalTasks.length === 0) {
-      container.innerHTML = '<div class="loading">No items found.</div>';
+      container.innerHTML = getEmptyStateHtml(statusFilter, 'No items found.');
       return;
     }
 
     var now = new Date().getTime();
 
     var filteredTasks = globalTasks.slice().sort(function(a, b) {
+      if (statusFilter === 'Archived') {
+        var archivedTimeA = parseDateOnly(a.archiveSortDate || a.dateAdded) ? parseDateOnly(a.archiveSortDate || a.dateAdded).getTime() : 0;
+        var archivedTimeB = parseDateOnly(b.archiveSortDate || b.dateAdded) ? parseDateOnly(b.archiveSortDate || b.dateAdded).getTime() : 0;
+        return archivedTimeB - archivedTimeA;
+      }
+
       var overA = (typeof checkOverdue === 'function' && checkOverdue(a, now)) ? 0 : 1;
       var overB = (typeof checkOverdue === 'function' && checkOverdue(b, now)) ? 0 : 1;
       if (overA !== overB) return overA - overB;
@@ -428,37 +464,105 @@ google.script.run
              calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrAllDay(vStart) + "/" + toCalStrAllDay(calEndD2) + "&details=" + calDetails;
           }
         } 
-        else if (cat.toLowerCase().indexOf("event") !== -1) {
-          if (eStartD && eEndD && formatD(eStartD) !== formatD(eEndD)) {
-             html += '<div class="inline-section"><b>Event Dates:</b> <span>' + formatD(eStartD) + ' - ' + formatD(eEndD) + '</span></div>';
-             var calEndD = new Date(eEndD); calEndD.setDate(calEndD.getDate() + 1); 
-             calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrAllDay(eStartD) + "/" + toCalStrAllDay(calEndD) + "&details=" + calDetails;
-          } else if (eStartD) {
-             html += '<div class="inline-section"><b>Date of Event:</b> <span>' + formatD(eStartD) + '</span></div>';
-             if (eStartT || eEndT) {
-               var timeString = "";
-               if (eStartT && eEndT) {
-                   timeString = formatT(eStartT) + ' - ' + formatT(eEndT);
-                   html += '<div class="inline-section"><b>Event Times:</b> <span>' + timeString + '</span></div>';
-               } else if (eStartT) {
-                   timeString = formatT(eStartT);
-                   html += '<div class="inline-section"><b>Event Time:</b> <span>' + timeString + '</span></div>';
-               } else if (eEndT) {
-                   timeString = formatT(eEndT);
-                   html += '<div class="inline-section"><b>Event End Time:</b> <span>' + timeString + '</span></div>';
-               }
-               var calStartDTime = new Date(eStartD);
-               if (eStartT) calStartDTime.setHours(eStartT.getHours(), eStartT.getMinutes());
-               var calEndDTime = new Date(eStartD);
-               if (eEndT) calEndDTime.setHours(eEndT.getHours(), eEndT.getMinutes());
-               else if (eStartT) calEndDTime.setHours(eStartT.getHours() + 1, eStartT.getMinutes());
-               calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrTime(calStartDTime) + "/" + toCalStrTime(calEndDTime) + "&details=" + calDetails;
-             } else {
-               var calEndD2 = new Date(eStartD); calEndD2.setDate(calEndD2.getDate() + 1);
-               calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrAllDay(eStartD) + "/" + toCalStrAllDay(calEndD2) + "&details=" + calDetails;
-             }
-          }
-        } 
+       else if (cat.toLowerCase().indexOf("event") !== -1) {
+
+  var startDate = eStartD;
+  var endDate = eEndD;
+
+  // determine effective date when only end date exists
+  if (!startDate && endDate) startDate = endDate;
+
+  var isMultiDay = startDate && endDate && startDate.getTime() !== endDate.getTime();
+  var hasBothTimes = eStartT && eEndT;
+
+  if (isMultiDay) {
+
+    html += '<div class="inline-section"><b>Event Dates:</b> <span>' + formatD(startDate) + ' - ' + formatD(endDate) + '</span></div>';
+
+    // multi-day timed ONLY if both times exist
+    if (hasBothTimes) {
+
+      html += '<div class="inline-section"><b>Event Times:</b> <span>' + formatT(eStartT) + ' - ' + formatT(eEndT) + '</span></div>';
+
+      var calStart = new Date(startDate);
+      calStart.setHours(eStartT.getHours(), eStartT.getMinutes());
+
+      var calEnd = new Date(endDate);
+      calEnd.setHours(eEndT.getHours(), eEndT.getMinutes());
+
+      calUrl =
+        "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+        "&text=" + calTitle +
+        "&dates=" + toCalStrTime(calStart) + "/" + toCalStrTime(calEnd) +
+        "&details=" + calDetails;
+
+    } else {
+
+      // multi-day all-day
+      var calEnd = new Date(endDate);
+      calEnd.setDate(calEnd.getDate() + 1);
+
+      calUrl =
+        "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+        "&text=" + calTitle +
+        "&dates=" + toCalStrAllDay(startDate) + "/" + toCalStrAllDay(calEnd) +
+        "&details=" + calDetails;
+    }
+
+  } else {
+
+    var oneDayEventDate = startDate;
+
+    if (oneDayEventDate) {
+      html += '<div class="inline-section"><b>Date of Event:</b> <span>' + formatD(oneDayEventDate) + '</span></div>';
+
+      if (eStartT && eEndT) {
+
+        html += '<div class="inline-section"><b>Event Times:</b> <span>' + formatT(eStartT) + ' - ' + formatT(eEndT) + '</span></div>';
+
+        var calStart = new Date(oneDayEventDate);
+        calStart.setHours(eStartT.getHours(), eStartT.getMinutes());
+
+        var calEnd = new Date(oneDayEventDate);
+        calEnd.setHours(eEndT.getHours(), eEndT.getMinutes());
+
+        calUrl =
+          "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+          "&text=" + calTitle +
+          "&dates=" + toCalStrTime(calStart) + "/" + toCalStrTime(calEnd) +
+          "&details=" + calDetails;
+
+      } else if (eStartT) {
+
+        html += '<div class="inline-section"><b>Event Time:</b> <span>' + formatT(eStartT) + '</span></div>';
+
+        var calStart = new Date(oneDayEventDate);
+        calStart.setHours(eStartT.getHours(), eStartT.getMinutes());
+
+        var calEnd = new Date(oneDayEventDate);
+        calEnd.setHours(eStartT.getHours() + 1, eStartT.getMinutes());
+
+        calUrl =
+          "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+          "&text=" + calTitle +
+          "&dates=" + toCalStrTime(calStart) + "/" + toCalStrTime(calEnd) +
+          "&details=" + calDetails;
+
+      } else {
+
+        // one-day all-day
+        var calEnd = new Date(oneDayEventDate);
+        calEnd.setDate(calEnd.getDate() + 1);
+
+        calUrl =
+          "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+          "&text=" + calTitle +
+          "&dates=" + toCalStrAllDay(oneDayEventDate) + "/" + toCalStrAllDay(calEnd) +
+          "&details=" + calDetails;
+      }
+    }
+  }
+}
         else if (cat.toLowerCase().indexOf("deadline") !== -1) {
           if (dLineD) {
              var dLineT = parseTimeOnly(t.deadlineTime);
@@ -517,6 +621,9 @@ google.script.run
       } 
     } 
     
-    container.innerHTML = html || '<div class="loading">No items match your selected filters.</div>';
+    container.innerHTML = html || getEmptyStateHtml(statusFilter, 'No items match your selected filters.');
+    if (html) {
+      applyClampVisibilityFix();
+    }
   } 
 </script>
