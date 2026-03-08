@@ -65,15 +65,20 @@ function prepareTemplate() {
   
   // Fetch your Logo
   template.logoData = getBase64FromDrive('19mPJKHJqa1jxhncy_vMKL2Ji75bzX8Zb');
-  
-  // Fetch your 5 Category Icons + Default using your exact IDs
+
+  // Fetch your 5 Category Icons + Default using your exact IDs.
+  // Any missing icon gracefully falls back to Default.
+  var defaultIcon = getBase64FromDrive('19Md7A0UW-9rE-85Nur3Y4x_mUKB7bhNi');
+  var resolveIcon = function(fileId) {
+    return getBase64FromDrive(fileId) || defaultIcon;
+  };
   var iconsObject = {
-    "Deadline":    getBase64FromDrive('1XIebkiDUA26NAZIrGmffu--Alz_A7X-1'),
-    "Event":       getBase64FromDrive('1m5EFML635qlcY2RMlFZExeAyPRKQTwGH'),
-    "Information": getBase64FromDrive('1hayBHxM5IVXMfogq4Qvjplfpu-miXFdj'), 
-    "Task":        getBase64FromDrive('1-G6SGaP00pMmfClnqVaLmt1mDjcIF3gy'),
-    "Vacation":    getBase64FromDrive('1MNp7mdAjLHC7seqRfsg9DZg6piHVaA_e'),
-    "Default":     getBase64FromDrive('19Md7A0UW-9rE-85Nur3Y4x_mUKB7bhNi')
+    "Deadline":    resolveIcon('1XIebkiDUA26NAZIrGmffu--Alz_A7X-1'),
+    "Event":       resolveIcon('1m5EFML635qlcY2RMlFZExeAyPRKQTwGH'),
+    "Information": resolveIcon('1hayBHxM5IVXMfogq4Qvjplfpu-miXFdj'), 
+    "Task":        resolveIcon('1-G6SGaP00pMmfClnqVaLmt1mDjcIF3gy'),
+    "Vacation":    resolveIcon('1MNp7mdAjLHC7seqRfsg9DZg6piHVaA_e'),
+    "Default":     defaultIcon
   };
   
   // Package them as a string to hand to the HTML safely
@@ -193,7 +198,8 @@ function getSignedInUserContext() {
     name: "",
     email: "",
     organisationRole: "",
-    systemRole: "User"
+    systemRole: "User",
+    profileImageUrl: ""
   };
 
   try {
@@ -217,13 +223,49 @@ function getSignedInUserContext() {
         name: name,
         email: email,
         organisationRole: organisationRole,
-        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User"
+        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User",
+        profileImageUrl: getGoogleProfileImageUrl_()
       };
     }
     return fallback;
   } catch (e) {
     Logger.log("Error in getSignedInUserContext: " + e.message);
     return fallback;
+  }
+}
+
+function getAuthorizationStatusForUi() {
+  try {
+    var authInfo = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
+    var status = authInfo.getAuthorizationStatus();
+    var needsAuth = status === ScriptApp.AuthorizationStatus.REQUIRED;
+    return {
+      requiresAuthorization: needsAuth,
+      authorizationUrl: authInfo.getAuthorizationUrl() || ""
+    };
+  } catch (e) {
+    Logger.log("Error in getAuthorizationStatusForUi: " + e.message);
+    return {
+      requiresAuthorization: false,
+      authorizationUrl: ""
+    };
+  }
+}
+
+function getGoogleProfileImageUrl_() {
+  try {
+    if (typeof People === "undefined" || !People.People || !People.People.get) return "";
+    var me = People.People.get("people/me", { personFields: "photos" });
+    var photos = (me && me.photos) ? me.photos : [];
+    if (!photos.length) return "";
+    for (var i = 0; i < photos.length; i++) {
+      var p = photos[i];
+      if (p && p.url && p.metadata && p.metadata.primary) return p.url;
+    }
+    return photos[0] && photos[0].url ? photos[0].url : "";
+  } catch (e) {
+    Logger.log("People API profile photo unavailable: " + e.message);
+    return "";
   }
 }
 

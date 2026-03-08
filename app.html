@@ -1,48 +1,137 @@
 <script>
-  // categoryIcons is defined in Index.html
+  // categoryIcons is defined in Main.html
   var globalTasks = [];
   var globalStaffList = []; 
   var pendingAction = null; 
   var taskContainerTransitionTimer = null;
   var currentUserContext = null;
+  var fallbackProfileImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E";
+  var fallbackCategoryIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23eef3fb%22/%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2210%22%20fill%3D%22%23607a96%22/%3E%3C/svg%3E";
 
   document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('userDropdown').addEventListener('change', fetchTasks);
-  document.getElementById('statusFilter').addEventListener('change', fetchTasks);
-  document.getElementById('typeFilter').addEventListener('change', renderTasks);
+    document.getElementById('userDropdown').addEventListener('change', fetchTasks);
+    document.getElementById('statusFilter').addEventListener('change', fetchTasks);
+    document.getElementById('typeFilter').addEventListener('change', renderTasks);
 
-  initializeSignedInUser();
-});
+    bootstrapAppAuthFlow();
+  });
 
-function initializeSignedInUser() {
-  google.script.run
-    .withSuccessHandler(function(ctx) {
-  currentUserContext = ctx || {};
-  applyWelcomeContext(currentUserContext);
-  applyRoleToolbarMode(currentUserContext);
-})
-    .withFailureHandler(function(error) {
-      console.error("Signed-in user context error:", error);
-      setTaskContainerHtml('<div class="loading">Unable to load signed-in user context.</div>');
-    })
-    .getSignedInUserContext();
-}
+  function bootstrapAppAuthFlow() {
+    google.script.run
+      .withSuccessHandler(function(auth) {
+        auth = auth || {};
+        if (auth.requiresAuthorization) {
+          showAuthorizationRequired(auth.authorizationUrl || "");
+          return;
+        }
+        initializeSignedInUser();
+      })
+      .withFailureHandler(function(error) {
+        console.error("Authorization status error:", error);
+        setTaskContainerHtml('<div class="loading">Unable to verify authorization status.</div>');
+      })
+      .getAuthorizationStatusForUi();
+  }
+
+  function showAuthorizationRequired(authorizationUrl) {
+    var userDropdown = document.getElementById('userDropdown');
+    var typeFilter = document.getElementById('typeFilter');
+    var statusFilter = document.getElementById('statusFilter');
+    var welcomeEl = document.getElementById('welcomeText');
+    var avatarEl = document.getElementById('toolbarProfileImage');
+    var adminBadge = document.getElementById('adminBadge');
+
+    userDropdown.classList.add('is-hidden');
+    userDropdown.innerHTML = '<option value=""></option>';
+    typeFilter.disabled = true;
+    statusFilter.disabled = true;
+    welcomeEl.textContent = "";
+    avatarEl.src = fallbackProfileImage;
+    avatarEl.classList.add('is-fallback');
+    adminBadge.classList.add('is-hidden');
+
+    var clickHereHtml = authorizationUrl
+      ? '<a href="' + escapeHtml_(authorizationUrl) + '" target="_top" rel="noopener">Click Here</a>'
+      : 'Click Here';
+
+    setTaskContainerHtml(
+      '<div class="loading auth-required">Thanks for visiting the EDI Hub. Please ' +
+      clickHereHtml +
+      ' to sign in with your CIA FIRST Google account and allow access so we can display information personalised to you.<div class="auth-helper-line">If you are signed in to multiple Google accounts, reopen the app using your CIA FIRST Google account.</div></div>'
+    );
+  }
+
+  function initializeSignedInUser() {
+    google.script.run
+      .withSuccessHandler(function(ctx) {
+        currentUserContext = ctx || {};
+        if (!isCiaFirstDomainEmail((currentUserContext && currentUserContext.email) || "")) {
+          showInvalidDomainMessage();
+          return;
+        }
+        applyWelcomeContext(currentUserContext);
+        applyRoleToolbarMode(currentUserContext);
+      })
+      .withFailureHandler(function(error) {
+        console.error("Signed-in user context error:", error);
+        setTaskContainerHtml('<div class="loading">Unable to load signed-in user context.</div>');
+      })
+      .getSignedInUserContext();
+  }
+
+  function isCiaFirstDomainEmail(email) {
+    var normalized = String(email || "").toLowerCase().trim();
+    return normalized.endsWith("@ciaschool.edu.kh");
+  }
+
+  function showInvalidDomainMessage() {
+    var userDropdown = document.getElementById('userDropdown');
+    var typeFilter = document.getElementById('typeFilter');
+    var statusFilter = document.getElementById('statusFilter');
+    var welcomeEl = document.getElementById('welcomeText');
+    var avatarEl = document.getElementById('toolbarProfileImage');
+    var adminBadge = document.getElementById('adminBadge');
+
+    userDropdown.classList.add('is-hidden');
+    userDropdown.innerHTML = '<option value=""></option>';
+    typeFilter.disabled = true;
+    statusFilter.disabled = true;
+    adminBadge.classList.add('is-hidden');
+    welcomeEl.textContent = "";
+    avatarEl.src = fallbackProfileImage;
+    avatarEl.classList.add('is-fallback');
+
+    setTaskContainerHtml('<div class="loading auth-required">Please reopen the EDI Hub using your CIA FIRST Google account (@ciaschool.edu.kh) to view personalised items.</div>');
+  }
 
   function applyWelcomeContext(ctx) {
     var welcomeEl = document.getElementById('welcomeText');
+    var profileImageEl = document.getElementById('toolbarProfileImage');
     var displayName = String((ctx && ctx.name) || "").trim();
     var displayEmail = String((ctx && ctx.email) || "").trim();
+    var profileImageUrl = String((ctx && ctx.profileImageUrl) || "").trim();
     if (!displayName) displayName = displayEmail || "User";
     welcomeEl.textContent = "Welcome, " + displayName;
+    if (profileImageUrl) {
+      profileImageEl.src = profileImageUrl;
+      profileImageEl.classList.remove('is-fallback');
+    } else {
+      profileImageEl.src = fallbackProfileImage;
+      profileImageEl.classList.add('is-fallback');
+    }
   }
 
   function applyRoleToolbarMode(ctx) {
     var dropdown = document.getElementById('userDropdown');
+    var adminBadge = document.getElementById('adminBadge');
     var signedInName = String((ctx && ctx.name) || "").trim();
     var role = String((ctx && ctx.systemRole) || "User").trim().toLowerCase();
     var isAdmin = (role === "admin");
+    document.getElementById('typeFilter').disabled = false;
+    document.getElementById('statusFilter').disabled = false;
 
     if (!isAdmin) {
+      adminBadge.classList.add('is-hidden');
       dropdown.classList.add('is-hidden');
       if (signedInName) {
         dropdown.innerHTML = '<option value="' + escapeHtml_(signedInName) + '">' + escapeHtml_(signedInName) + '</option>';
@@ -54,6 +143,7 @@ function initializeSignedInUser() {
       return;
     }
 
+    adminBadge.classList.remove('is-hidden');
     dropdown.classList.remove('is-hidden');
     google.script.run
       .withSuccessHandler(function(names) {
@@ -419,7 +509,7 @@ function initializeSignedInUser() {
         else if (cLower.indexOf("task") !== -1) iconKey = "Task";
         else if (cLower.indexOf("vacation") !== -1) iconKey = "Vacation";
         
-        var iconSrc = categoryIcons[iconKey] || categoryIcons["Default"];
+        var iconSrc = categoryIcons[iconKey] || categoryIcons["Default"] || fallbackCategoryIcon;
 
         var isUrgentPriority = prio.toLowerCase() === 'urgent';
         var isOverdueActive = checkOverdue(t, now);
@@ -432,7 +522,7 @@ function initializeSignedInUser() {
         html += '<div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 12px;">';
         
         // 2. Resize icon to 48px and add a tiny 2px top margin to offset the font ascender
-        html +=   '<img src="' + iconSrc + '" style="width: 48px; height: 48px; flex-shrink: 0; margin-top: 2px;" alt="icon">';
+        html +=   '<img src="' + iconSrc + '" onerror="this.onerror=null;this.src=\'' + fallbackCategoryIcon + '\';" style="width: 48px; height: 48px; flex-shrink: 0; margin-top: 2px;" alt="icon">';
         
         // 3. Make the text container flex-column, height 48px, pushing text to top and bottom
         html +=   '<div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-height: 48px; margin-top: 2px;">';
