@@ -172,7 +172,7 @@ function getStaffNames() {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName("Data"); 
     if (!sheet) return ["Error: 'Data' sheet missing"];
-    var data = sheet.getRange("B3:B200").getValues();
+    var data = sheet.getRange("B4:B200").getValues();
     var names = [];
     for (var i = 0; i < data.length; i++) {
       if (data[i][0]) {
@@ -185,6 +185,45 @@ function getStaffNames() {
   } catch (e) { 
     Logger.log("Error in getStaffNames: " + e.message);
     return ["Error: Check Data Sheet"]; 
+  }
+}
+
+function getSignedInUserContext() {
+  var fallback = {
+    name: "",
+    email: "",
+    organisationRole: "",
+    systemRole: "User"
+  };
+
+  try {
+    var signedInEmail = String(Session.getActiveUser().getEmail() || "").toLowerCase().trim();
+    fallback.email = signedInEmail;
+
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Data");
+    if (!sheet) return fallback;
+
+    var rows = sheet.getRange("B4:E200").getValues(); // Name, Email, Org Role, System Role
+    for (var i = 0; i < rows.length; i++) {
+      var name = String(rows[i][0] || "").trim();
+      var email = String(rows[i][1] || "").toLowerCase().trim();
+      var organisationRole = String(rows[i][2] || "").trim();
+      var systemRole = String(rows[i][3] || "").trim();
+      if (!name || !email) continue;
+      if (email !== signedInEmail) continue;
+
+      return {
+        name: name,
+        email: email,
+        organisationRole: organisationRole,
+        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User"
+      };
+    }
+    return fallback;
+  } catch (e) {
+    Logger.log("Error in getSignedInUserContext: " + e.message);
+    return fallback;
   }
 }
 

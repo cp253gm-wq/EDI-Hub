@@ -4,52 +4,121 @@
   var globalStaffList = []; 
   var pendingAction = null; 
   var taskContainerTransitionTimer = null;
+  var currentUserContext = null;
 
   document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('userDropdown').addEventListener('change', fetchTasks);
+  document.getElementById('statusFilter').addEventListener('change', fetchTasks);
+  document.getElementById('typeFilter').addEventListener('change', renderTasks);
+
+  initializeSignedInUser();
+});
+
+function initializeSignedInUser() {
+  google.script.run
+    .withSuccessHandler(function(ctx) {
+  currentUserContext = ctx || {};
+  applyWelcomeContext(currentUserContext);
+  applyRoleToolbarMode(currentUserContext);
+})
+    .withFailureHandler(function(error) {
+      console.error("Signed-in user context error:", error);
+      setTaskContainerHtml('<div class="loading">Unable to load signed-in user context.</div>');
+    })
+    .getSignedInUserContext();
+}
+
+  function applyWelcomeContext(ctx) {
+    var welcomeEl = document.getElementById('welcomeText');
+    var displayName = String((ctx && ctx.name) || "").trim();
+    var displayEmail = String((ctx && ctx.email) || "").trim();
+    if (!displayName) displayName = displayEmail || "User";
+    welcomeEl.textContent = "Welcome, " + displayName;
+  }
+
+  function applyRoleToolbarMode(ctx) {
+    var dropdown = document.getElementById('userDropdown');
+    var signedInName = String((ctx && ctx.name) || "").trim();
+    var role = String((ctx && ctx.systemRole) || "User").trim().toLowerCase();
+    var isAdmin = (role === "admin");
+
+    if (!isAdmin) {
+      dropdown.classList.add('is-hidden');
+      if (signedInName) {
+        dropdown.innerHTML = '<option value="' + escapeHtml_(signedInName) + '">' + escapeHtml_(signedInName) + '</option>';
+        dropdown.value = signedInName;
+        fetchTasks();
+      } else {
+        setTaskContainerHtml('<div class="loading">Signed-in user not found in Data sheet.</div>');
+      }
+      return;
+    }
+
+    dropdown.classList.remove('is-hidden');
     google.script.run
       .withSuccessHandler(function(names) {
         globalStaffList = names || [];
-        var dropdown = document.getElementById('userDropdown');
         var html = '<option value="">-- Select Your Name --</option>';
         if (globalStaffList.length > 0) {
           for (var i = 0; i < globalStaffList.length; i++) {
-            html += '<option value="' + globalStaffList[i] + '">' + globalStaffList[i] + '</option>';
+            html += '<option value="' + escapeHtml_(globalStaffList[i]) + '">' + escapeHtml_(globalStaffList[i]) + '</option>';
           }
         } else {
           html += '<option value="">No names found</option>';
         }
         dropdown.innerHTML = html;
+
+        if (signedInName) {
+          var found = false;
+          for (var j = 0; j < globalStaffList.length; j++) {
+            if (globalStaffList[j] === signedInName) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            dropdown.innerHTML = '<option value="' + escapeHtml_(signedInName) + '">' + escapeHtml_(signedInName) + '</option>' + dropdown.innerHTML;
+          }
+          dropdown.value = signedInName;
+        }
+        if (dropdown.value) fetchTasks();
       })
       .withFailureHandler(function(error) {
         console.error("Names Error:", error);
-        document.getElementById('userDropdown').innerHTML = '<option value="">Error loading names</option>';
+        dropdown.innerHTML = '<option value="">Error loading names</option>';
       })
       .getStaffNames();
+  }
 
-    document.getElementById('userDropdown').addEventListener('change', fetchTasks);
-    document.getElementById('statusFilter').addEventListener('change', fetchTasks);
-    document.getElementById('typeFilter').addEventListener('change', renderTasks);
-  });
+  function escapeHtml_(value) {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   function fetchTasks() {
-    var user = document.getElementById('userDropdown').value;
-    if (!user) return;
-    setTaskContainerHtml(renderTaskSkeletons(4));
-    
-    var statusFilter = document.getElementById('statusFilter').value;
-var includeArchived = (statusFilter === "Archived" || statusFilter === "All");
+  var user = document.getElementById('userDropdown').value;
+  if (!user) return;
 
-google.script.run
-  .withSuccessHandler(function(tasks) {
-    globalTasks = tasks || [];
-    renderTasks();
-  })
-  .withFailureHandler(function(err) {
-    console.error("getTasksForUser failed:", err);
-    setTaskContainerHtml('<div class="loading">Error loading items. Check Apps Script → Executions.</div>');
-  })
-  .getTasksForUser(user, { includeArchived: includeArchived });
-  }
+  setTaskContainerHtml(renderTaskSkeletons(4));
+
+  var statusFilter = document.getElementById('statusFilter').value;
+  var includeArchived = (statusFilter === "Archived" || statusFilter === "All");
+
+  google.script.run
+    .withSuccessHandler(function(tasks) {
+      globalTasks = tasks || [];
+      renderTasks();
+    })
+    .withFailureHandler(function(err) {
+      console.error("getTasksForUser failed:", err);
+      setTaskContainerHtml('<div class="loading">Error loading items. Check Apps Script → Executions.</div>');
+    })
+    .getTasksForUser(user, { includeArchived: includeArchived });
+}
 
   function setTaskContainerHtml(nextHtml, afterRender) {
     var container = document.getElementById('taskContainer');

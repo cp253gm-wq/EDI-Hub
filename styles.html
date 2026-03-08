@@ -44,6 +44,27 @@
       .logo-container img { height: 40px; } 
       
       .toolbar-controls { flex: 2; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+      .toolbar-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-left: 12px;
+      }
+      .toolbar-profile-image {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid #d3deec;
+        background: #eef3fb;
+        flex-shrink: 0;
+      }
+      .welcome-text {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+      }
+      .is-hidden { display: none !important; }
       select {
         padding: 9px 12px;
         font-size: 13px;
@@ -266,6 +287,11 @@
           justify-content: flex-start;
           flex-wrap: wrap;
           gap: 8px;
+        }
+        .toolbar-user {
+          margin-left: 0;
+          width: 100%;
+          justify-content: flex-start;
         }
       }
     </style>
