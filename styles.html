@@ -17,6 +17,10 @@
         --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08);
       }
 
+      html, body {
+  height: 100%;
+}
+
       body {
         font-family: 'Google Sans', Roboto, Arial, sans-serif;
         background: radial-gradient(circle at 8% -10%, #ffffff 0%, var(--bg-soft) 55%, #edf3fb 100%);
@@ -47,13 +51,13 @@
       .toolbar-user {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
         margin-left: 12px;
-        padding: 6px 10px;
-        border: 1px solid #dbe5f2;
+        padding: 5px 10px 5px 8px;
+        border: 1px solid #d7e2f0;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.9);
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+        background: rgba(255, 255, 255, 0.93);
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.07);
       }
       .toolbar-profile-image {
         width: 34px;
@@ -64,6 +68,7 @@
         flex-shrink: 0;
         object-fit: cover;
         display: block;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
       }
       .toolbar-profile-image.is-fallback {
         border-color: #e8c5ad;
@@ -72,23 +77,35 @@
       .welcome-text {
         font-size: 13px;
         font-weight: 600;
-        color: var(--text-main);
+        color: #233144;
         white-space: nowrap;
       }
       .admin-badge {
         display: inline-flex;
-        align-items: center;
-        padding: 2px 7px;
-        border-radius: 8px;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: 0.35px;
-        text-transform: uppercase;
-        color: #23415e;
-        background: linear-gradient(180deg, #f2f8ff 0%, #dcecff 100%);
-        border: 1px solid #bcd4ef;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(31, 41, 55, 0.08);
-        white-space: nowrap;
+        position: relative;
+        width: 18px;
+        height: 22px;
+        margin-left: -3px;
+        margin-right: 1px;
+        font-size: 0;
+        line-height: 0;
+        background: linear-gradient(180deg, #f2d68b 0%, #cf9d4a 100%);
+        border: 1px solid #9a7233;
+        clip-path: polygon(50% 100%, 8% 78%, 8% 18%, 50% 2%, 92% 18%, 92% 78%);
+        box-shadow: inset 0 1px 0 rgba(255, 247, 221, 0.7), 0 1px 2px rgba(31, 41, 55, 0.2);
+        flex-shrink: 0;
+      }
+      .admin-badge::before {
+        content: "A";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -52%);
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
+        color: #2f2414;
+        letter-spacing: 0.1px;
       }
       .is-hidden { display: none !important; }
       select {
@@ -108,7 +125,34 @@
         box-shadow: 0 0 0 3px rgba(27, 102, 209, 0.12);
       }
       
-      .container { padding: 24px 20px; max-width: 1200px; margin: 0 auto; }
+      .container {
+  flex: 1;
+  padding: 24px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+      .app-footer {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 6px 20px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 10.5px;
+  color: #7a8698;
+  border-top: 1px solid #e7edf6;
+  box-sizing: border-box;
+}
+      .footer-meta {
+        white-space: nowrap;
+      }
+      .footer-copy {
+        text-align: right;
+      }
       
       .task-card {
         background-color: var(--surface) !important;
@@ -328,6 +372,14 @@
           margin-left: 0;
           width: 100%;
           justify-content: flex-start;
+        }
+        .app-footer {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .footer-copy {
+          text-align: left;
         }
       }
     </style>

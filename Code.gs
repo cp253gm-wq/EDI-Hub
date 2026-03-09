@@ -24,6 +24,10 @@
  * ============================================================================
  */
 
+const APP_VERSION = "v1.0.0";
+const APP_COMMIT = "dev";
+const APP_COPYRIGHT_YEAR = "2026";
+
 // --- 1. SHEETS MENU SETUP (Keeps the Pop-up working) ---
 function onOpen() {
   SpreadsheetApp.getUi().createMenu(' 🚀  EDI Hub')
@@ -62,6 +66,9 @@ function include(filename) {
 // --- 3. HELPER FUNCTION TO LOAD DATA (Used by both doors!) ---
 function prepareTemplate() {
   var template = HtmlService.createTemplateFromFile('Main');
+  template.appVersion = APP_VERSION;
+  template.appCommit = APP_COMMIT;
+  template.appCopyrightYear = APP_COPYRIGHT_YEAR;
   
   // Fetch your Logo
   template.logoData = getBase64FromDrive('19mPJKHJqa1jxhncy_vMKL2Ji75bzX8Zb');
