@@ -2,15 +2,6 @@
   "timeZone": "Asia/Bangkok",
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
-  "dependencies": {
-    "enabledAdvancedServices": [
-      {
-        "userSymbol": "People",
-        "serviceId": "peopleapi",
-        "version": "v1"
-      }
-    ]
-  },
   "webapp": {
     "executeAs": "USER_DEPLOYING",
     "access": "DOMAIN"
@@ -20,7 +11,6 @@
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/script.scriptapp",
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile"
+    "https://www.googleapis.com/auth/userinfo.email"
   ]
 }

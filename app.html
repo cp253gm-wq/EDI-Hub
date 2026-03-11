@@ -109,16 +109,10 @@
     var profileImageEl = document.getElementById('toolbarProfileImage');
     var displayName = String((ctx && ctx.name) || "").trim();
     var displayEmail = String((ctx && ctx.email) || "").trim();
-    var profileImageUrl = String((ctx && ctx.profileImageUrl) || "").trim();
     if (!displayName) displayName = displayEmail || "User";
     welcomeEl.textContent = "Welcome, " + displayName;
-    if (profileImageUrl) {
-      profileImageEl.src = profileImageUrl;
-      profileImageEl.classList.remove('is-fallback');
-    } else {
-      profileImageEl.src = fallbackProfileImage;
-      profileImageEl.classList.add('is-fallback');
-    }
+    profileImageEl.src = fallbackProfileImage;
+    profileImageEl.classList.add('is-fallback');
   }
 
   function applyRoleToolbarMode(ctx) {

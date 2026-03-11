@@ -205,8 +205,7 @@ function getSignedInUserContext() {
     name: "",
     email: "",
     organisationRole: "",
-    systemRole: "User",
-    profileImageUrl: ""
+    systemRole: "User"
   };
 
   try {
@@ -230,8 +229,7 @@ function getSignedInUserContext() {
         name: name,
         email: email,
         organisationRole: organisationRole,
-        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User",
-        profileImageUrl: getGoogleProfileImageUrl_()
+        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User"
       };
     }
     return fallback;
@@ -256,23 +254,6 @@ function getAuthorizationStatusForUi() {
       requiresAuthorization: false,
       authorizationUrl: ""
     };
-  }
-}
-
-function getGoogleProfileImageUrl_() {
-  try {
-    if (typeof People === "undefined" || !People.People || !People.People.get) return "";
-    var me = People.People.get("people/me", { personFields: "photos" });
-    var photos = (me && me.photos) ? me.photos : [];
-    if (!photos.length) return "";
-    for (var i = 0; i < photos.length; i++) {
-      var p = photos[i];
-      if (p && p.url && p.metadata && p.metadata.primary) return p.url;
-    }
-    return photos[0] && photos[0].url ? photos[0].url : "";
-  } catch (e) {
-    Logger.log("People API profile photo unavailable: " + e.message);
-    return "";
   }
 }
 
