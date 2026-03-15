@@ -107,6 +107,24 @@
         color: #2f2414;
         letter-spacing: 0.1px;
       }
+      .super-admin-badge::before {
+        content: "SA";
+        font-size: 8px;
+        letter-spacing: 0;
+      }
+      .super-admin-badge::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        width: 12px;
+        height: 6px;
+        transform: translateX(-50%);
+        background: linear-gradient(180deg, #f5df98 0%, #cf9d4a 100%);
+        border: 1px solid #9a7233;
+        clip-path: polygon(0% 100%, 12% 38%, 28% 68%, 50% 0%, 72% 68%, 88% 38%, 100% 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 247, 221, 0.7);
+      }
       .is-hidden { display: none !important; }
       select {
         padding: 9px 12px;

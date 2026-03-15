@@ -7,6 +7,7 @@
   var currentUserContext = null;
   var fallbackProfileImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E";
   var fallbackCategoryIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23eef3fb%22/%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2210%22%20fill%3D%22%23607a96%22/%3E%3C/svg%3E";
+  var avatarColorPalette = ['#c96f3b', '#5f7f96', '#7d8f47', '#b25d73', '#4b7a6f', '#8a6bb8'];
 
   document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('userDropdown').addEventListener('change', fetchTasks);
@@ -111,8 +112,29 @@
     var displayEmail = String((ctx && ctx.email) || "").trim();
     if (!displayName) displayName = displayEmail || "User";
     welcomeEl.textContent = "Welcome, " + displayName;
-    profileImageEl.src = fallbackProfileImage;
+    profileImageEl.src = buildInitialAvatarDataUri_(displayName, displayEmail);
     profileImageEl.classList.add('is-fallback');
+  }
+
+  function buildInitialAvatarDataUri_(displayName, email) {
+    var name = String(displayName || "").trim();
+    var seed = String(name || email || "User").trim();
+    var initial = seed.charAt(0).toUpperCase();
+    var color = avatarColorPalette[hashString_(seed.toLowerCase()) % avatarColorPalette.length];
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<circle cx="32" cy="32" r="32" fill="' + color + '"/>' +
+      '<text x="32" y="41" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#ffffff">' + escapeHtml_(initial) + '</text>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+  }
+
+  function hashString_(value) {
+    var hash = 0;
+    for (var i = 0; i < value.length; i++) {
+      hash = ((hash << 5) - hash) + value.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
   }
 
   function applyRoleToolbarMode(ctx) {
@@ -120,11 +142,15 @@
     var adminBadge = document.getElementById('adminBadge');
     var signedInName = String((ctx && ctx.name) || "").trim();
     var role = String((ctx && ctx.systemRole) || "User").trim().toLowerCase();
+    var isSuperAdmin = (role === "super admin");
     var isAdmin = (role === "admin");
+    var hasAdminAccess = isAdmin || isSuperAdmin;
     document.getElementById('typeFilter').disabled = false;
     document.getElementById('statusFilter').disabled = false;
 
-    if (!isAdmin) {
+    adminBadge.classList.remove('super-admin-badge');
+
+    if (!hasAdminAccess) {
       adminBadge.classList.add('is-hidden');
       dropdown.classList.add('is-hidden');
       if (signedInName) {
@@ -138,6 +164,7 @@
     }
 
     adminBadge.classList.remove('is-hidden');
+    if (isSuperAdmin) adminBadge.classList.add('super-admin-badge');
     dropdown.classList.remove('is-hidden');
     google.script.run
       .withSuccessHandler(function(names) {
