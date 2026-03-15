@@ -229,7 +229,12 @@ function getSignedInUserContext() {
         name: name,
         email: email,
         organisationRole: organisationRole,
-        systemRole: String(systemRole || "").toLowerCase() === "admin" ? "Admin" : "User"
+        systemRole: (function(role) {
+          role = String(role || "").toLowerCase().trim();
+          if (role === "super admin") return "Super Admin";
+          if (role === "admin") return "Admin";
+          return "User";
+        })(systemRole)
       };
     }
     return fallback;
