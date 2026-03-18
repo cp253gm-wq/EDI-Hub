@@ -23,10 +23,16 @@
 
       body {
         font-family: 'Google Sans', Roboto, Arial, sans-serif;
-        background: radial-gradient(circle at 8% -10%, #ffffff 0%, var(--bg-soft) 55%, #edf3fb 100%);
+        background-color: var(--bg-soft);
+        background-image: radial-gradient(circle at 8% -10%, #ffffff 0%, var(--bg-soft) 55%, #edf3fb 100%);
+        background-repeat: no-repeat;
+        background-size: cover;
         margin: 0;
         padding: 0;
         color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
       }
       .app-toolbar {
         display: flex;
@@ -42,6 +48,12 @@
         z-index: 100;
         min-height: 60px;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .app-toolbar.is-viewing-other-user {
+        background: rgba(255, 248, 239, 0.94);
+        border-bottom-color: #ecd3b8;
+        box-shadow: 0 8px 18px rgba(196, 129, 61, 0.08);
       }
       
       .logo-container { flex: 1; display: flex; align-items: center; }
@@ -49,15 +61,34 @@
       
       .toolbar-controls { flex: 2; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
       .toolbar-user {
-        display: flex;
+        position: relative;
+        margin-left: 12px;
+      }
+      .toolbar-user-button {
+        display: inline-flex;
         align-items: center;
         gap: 7px;
-        margin-left: 12px;
         padding: 5px 10px 5px 8px;
         border: 1px solid #d7e2f0;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.93);
         box-shadow: 0 3px 10px rgba(15, 23, 42, 0.07);
+        cursor: pointer;
+        color: inherit;
+        font: inherit;
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+      .toolbar-user-button:hover {
+        background: #f8fbff;
+        border-color: #ccd9ea;
+      }
+      .toolbar-user-button.is-open {
+        background: #f8fbff;
+        border-color: #c4d3e7;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+      }
+      .toolbar-user-button:disabled {
+        cursor: default;
       }
       .toolbar-profile-image {
         width: 34px;
@@ -79,6 +110,129 @@
         font-weight: 600;
         color: #233144;
         white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .viewing-mode-label {
+        color: #7a4a1f;
+      }
+      .viewing-mode-separator {
+        color: #b28a65;
+      }
+      .viewing-mode-link {
+        color: #1b66d1;
+        text-decoration: underline;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .toolbar-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        color: #607289;
+        flex-shrink: 0;
+      }
+      .toolbar-chevron svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+      .user-menu-dropdown {
+        position: absolute;
+        top: calc(100% + 10px);
+        right: 0;
+        min-width: 240px;
+        padding: 8px;
+        border: 1px solid #dbe4f0;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 16px 32px rgba(15, 23, 42, 0.14);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 240;
+      }
+      .user-menu-group {
+        position: relative;
+      }
+      .user-menu-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: #233144;
+        text-align: left;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .user-menu-item:hover {
+        background: #f4f8fd;
+      }
+      .user-menu-item.is-placeholder {
+        color: #8a96a8;
+        cursor: default;
+      }
+      .user-menu-item.is-placeholder:hover {
+        background: transparent;
+      }
+      .user-menu-icon,
+      .user-menu-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+      }
+      .user-menu-icon svg,
+      .user-menu-chevron svg {
+        width: 15px;
+        height: 15px;
+        display: block;
+        fill: currentColor;
+        color: #607289;
+      }
+      .user-menu-chevron svg {
+        fill: none;
+      }
+      .user-menu-chevron {
+        margin-left: auto;
+      }
+      .user-submenu {
+        margin-top: 6px;
+        padding: 6px;
+        border: 1px solid #e3eaf3;
+        border-radius: 12px;
+        background: #fbfdff;
+      }
+      .user-submenu-item {
+        width: 100%;
+        padding: 9px 10px;
+        border: none;
+        border-radius: 9px;
+        background: transparent;
+        color: #314154;
+        text-align: left;
+        font: inherit;
+        font-size: 12.5px;
+        cursor: pointer;
+      }
+      .user-submenu-item:hover {
+        background: #eef5ff;
+      }
+      .user-submenu-item.is-active {
+        background: #e9f1fd;
+        color: #1f4f94;
+        font-weight: 700;
       }
       .admin-badge {
         display: inline-flex;
@@ -144,17 +298,79 @@
       }
       
       .container {
-  flex: 1;
+  flex: 1 0 auto;
   padding: 24px 20px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
 }
+      .floating-feedback-button {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        z-index: 110;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: #e39a5b;
+        color: #ffffff;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        padding: 0;
+        cursor: pointer;
+        box-shadow: 0 16px 34px rgba(147, 90, 42, 0.28), 0 8px 18px rgba(15, 23, 42, 0.16);
+        transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+      }
+      .floating-feedback-button-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        flex-shrink: 0;
+        line-height: 0;
+      }
+      .floating-feedback-button-icon svg {
+        width: 36px;
+        height: 36px;
+        display: block;
+        fill: currentColor;
+      }
+      .floating-feedback-button:hover {
+        background: #d98947;
+        transform: translateY(-1px);
+        box-shadow: 0 18px 36px rgba(147, 90, 42, 0.32), 0 10px 22px rgba(15, 23, 42, 0.18);
+      }
+      .feedback-toast {
+        position: fixed;
+        top: 84px;
+        right: 20px;
+        z-index: 1200;
+        max-width: 320px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #1f8f4f;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 14px 28px rgba(31, 143, 79, 0.24);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+      }
+      .feedback-toast.active {
+        opacity: 1;
+        transform: translateY(0);
+      }
       .app-footer {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  margin-top: auto;
   padding: 6px 20px 10px;
   display: flex;
   align-items: center;
@@ -367,7 +583,200 @@
       
       .modal-message { font-size: 14px; color: #5c6b80; margin-bottom: 24px; line-height: 1.55; }
       .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
-      
+      .feedback-modal-dialog {
+        max-width: 520px;
+        border-left: 4px solid #e39a5b;
+      }
+      .feedback-inbox-dialog {
+        max-width: 1040px;
+        border-left: 4px solid #e39a5b;
+      }
+      .feedback-modal-title {
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f1d3b8;
+      }
+      .feedback-form {
+        display: grid;
+        gap: 10px;
+      }
+      .feedback-form label,
+      .feedback-detail-panel strong,
+      .feedback-detail-meta strong {
+        color: var(--text-main);
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .required-indicator {
+        color: #c24134;
+        font-weight: 800;
+      }
+      .feedback-form input,
+      .feedback-form textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d7e0ec;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+        color: var(--text-main);
+        background: #ffffff;
+      }
+      .feedback-form textarea {
+        resize: vertical;
+        min-height: 140px;
+      }
+      .feedback-form input:focus,
+      .feedback-form textarea:focus {
+        outline: none;
+        border-color: #b7caf0;
+        box-shadow: 0 0 0 3px rgba(27, 102, 209, 0.12);
+      }
+      .feedback-inline-note {
+        margin-top: 2px;
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.5;
+      }
+      .feedback-form-error {
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #fff3f1;
+        border: 1px solid #f2c8c3;
+        color: #a6382b;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .feedback-inbox-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.9fr);
+        gap: 18px;
+        min-height: 420px;
+      }
+      .feedback-list-panel,
+      .feedback-detail-panel {
+        border: 1px solid #e3eaf3;
+        border-radius: 14px;
+        background: #fbfdff;
+        min-height: 0;
+      }
+      .feedback-list-panel {
+        overflow: hidden;
+      }
+      .feedback-panel-title {
+        padding: 14px 16px 12px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #8b5a2b;
+        border-bottom: 1px solid #efe3d6;
+        background: linear-gradient(180deg, #fffaf5 0%, #fffdfb 100%);
+      }
+      .feedback-table-wrap {
+        overflow: auto;
+        max-height: 520px;
+      }
+      .feedback-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12.5px;
+      }
+      .feedback-table th,
+      .feedback-table td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid #e8eef6;
+        vertical-align: top;
+      }
+      .feedback-table th {
+        position: sticky;
+        top: 0;
+        background: #f5f8fc;
+        color: #526277;
+        font-size: 11.5px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .feedback-row {
+        cursor: pointer;
+      }
+      .feedback-row:hover {
+        background: #f7faff;
+      }
+      .feedback-row.is-selected {
+        background: #edf4ff;
+      }
+      .feedback-status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #eef3fb;
+        color: #314154;
+        font-weight: 700;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .feedback-detail-panel {
+        padding: 0;
+        box-sizing: border-box;
+      }
+      .feedback-detail-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 220px;
+        padding: 18px;
+        color: #718198;
+        text-align: center;
+        font-size: 13px;
+      }
+      .feedback-detail-subject {
+        padding: 18px 18px 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 8px;
+      }
+      .feedback-detail-meta {
+        padding: 0 18px;
+        display: grid;
+        gap: 8px;
+        font-size: 12.5px;
+        color: #5a697d;
+        margin-bottom: 16px;
+      }
+      .feedback-detail-message {
+        margin: 0 18px;
+        padding: 14px;
+        border-radius: 12px;
+        background: #ffffff;
+        border: 1px solid #e4eaf2;
+        color: var(--text-main);
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .feedback-detail-status {
+        padding: 0 18px 18px;
+        margin-top: 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .feedback-empty-state {
+        padding: 34px 20px;
+        text-align: center;
+        color: #718198;
+      }
+      .feedback-modal-dialog .modal-actions,
+      .feedback-inbox-dialog .modal-actions {
+        margin-top: 18px;
+        padding-top: 4px;
+      }
+
       .btn-modal-cancel { background: #f4f7fb; color: #334155; border: 1px solid #d7e0ec; padding: 8px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; }
       .btn-modal-cancel:hover { background-color: #ebf1f8; }
       .btn-modal-confirm { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 2px 8px rgba(27, 102, 209, 0.25); }
@@ -389,7 +798,34 @@
         .toolbar-user {
           margin-left: 0;
           width: 100%;
+        }
+        .toolbar-user-button {
+          width: 100%;
           justify-content: flex-start;
+        }
+        .user-menu-dropdown {
+          left: 0;
+          right: auto;
+          width: min(100%, 320px);
+        }
+        .floating-feedback-button {
+          right: 14px;
+          bottom: 16px;
+          width: 56px;
+          height: 56px;
+        }
+        .feedback-toast {
+          top: auto;
+          bottom: 74px;
+          right: 14px;
+          left: 14px;
+          max-width: none;
+        }
+        .feedback-inbox-layout {
+          grid-template-columns: 1fr;
+        }
+        .feedback-inbox-dialog {
+          max-width: 96vw;
         }
         .app-footer {
           flex-direction: column;

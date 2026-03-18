@@ -24,9 +24,22 @@
  * ============================================================================
  */
 
-const APP_VERSION = "v1.0.0";
-const APP_COMMIT = "dev";
+const APP_VERSION = "V2.4.4"; // manual, meaningful
+const APP_COMMIT_FALLBACK = "local";
 const APP_COPYRIGHT_YEAR = "2026";
+const FEEDBACK_SHEET_NAME = "Feedback";
+const FEEDBACK_HEADER_ROW = [
+  "Feedback ID",
+  "Timestamp",
+  "Submitted By Name",
+  "Submitted By Email",
+  "System Role",
+  "Type",
+  "Subject",
+  "Message",
+  "Status"
+];
+const FEEDBACK_STATUS_OPTIONS = ["New", "Reviewed", "In Progress", "Closed"];
 
 // --- 1. SHEETS MENU SETUP (Keeps the Pop-up working) ---
 function onOpen() {
@@ -66,9 +79,10 @@ function include(filename) {
 // --- 3. HELPER FUNCTION TO LOAD DATA (Used by both doors!) ---
 function prepareTemplate() {
   var template = HtmlService.createTemplateFromFile('Main');
-  template.appVersion = APP_VERSION;
-  template.appCommit = APP_COMMIT;
-  template.appCopyrightYear = APP_COPYRIGHT_YEAR;
+  var appMeta = getAppTemplateMeta_();
+  template.appVersion = appMeta.version;
+  template.appCommit = appMeta.commit;
+  template.appCopyrightYear = appMeta.copyrightYear;
   
   // Fetch your Logo
   template.logoData = getBase64FromDrive('19mPJKHJqa1jxhncy_vMKL2Ji75bzX8Zb');
@@ -92,6 +106,25 @@ function prepareTemplate() {
   template.iconsJSON = JSON.stringify(iconsObject);
   
   return template;
+}
+
+function getAppTemplateMeta_() {
+  var commit = APP_COMMIT_FALLBACK;
+
+  try {
+    var deployments = ScriptApp.getDeploymentInfo();
+    if (deployments && deployments.length) {
+      commit = String(deployments[deployments.length - 1].getDeploymentId() || "").slice(0, 7) || APP_COMMIT_FALLBACK;
+    }
+  } catch (e) {
+    Logger.log("Unable to resolve deployment commit: " + e.message);
+  }
+
+  return {
+    version: APP_VERSION,
+    commit: commit,
+    copyrightYear: APP_COPYRIGHT_YEAR
+  };
 }
 
 // =========================================================================
@@ -259,6 +292,166 @@ function getAuthorizationStatusForUi() {
       requiresAuthorization: false,
       authorizationUrl: ""
     };
+  }
+}
+
+function normalizeSystemRole_(role) {
+  role = String(role || "").toLowerCase().trim();
+  if (role === "super admin") return "Super Admin";
+  if (role === "admin") return "Admin";
+  return "User";
+}
+
+function hasFeedbackAdminAccess_(ctx) {
+  var role = normalizeSystemRole_(ctx && ctx.systemRole);
+  return role === "Admin" || role === "Super Admin";
+}
+
+function getOrCreateFeedbackSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(FEEDBACK_SHEET_NAME);
+  if (!sheet) {
+    sheet = ss.insertSheet(FEEDBACK_SHEET_NAME);
+  }
+
+  var needsHeader = sheet.getLastRow() < 1;
+  if (!needsHeader) {
+    var currentHeader = sheet.getRange(1, 1, 1, FEEDBACK_HEADER_ROW.length).getValues()[0];
+    for (var i = 0; i < FEEDBACK_HEADER_ROW.length; i++) {
+      if (String(currentHeader[i] || "").trim() !== FEEDBACK_HEADER_ROW[i]) {
+        needsHeader = true;
+        break;
+      }
+    }
+  }
+
+  if (needsHeader) {
+    sheet.getRange(1, 1, 1, FEEDBACK_HEADER_ROW.length).setValues([FEEDBACK_HEADER_ROW]);
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function buildFeedbackId_() {
+  return "FB-" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMdd-HHmmss") + "-" + Utilities.getUuid().slice(0, 8).toUpperCase();
+}
+
+function submitFeedback(payload) {
+  payload = payload || {};
+  var lock = LockService.getDocumentLock();
+
+  try {
+    lock.waitLock(5000);
+
+    var ctx = getSignedInUserContext() || {};
+    var feedbackType = String(payload.type || "General Feedback").trim() || "General Feedback";
+    var subject = String(payload.subject || "").trim();
+    var message = String(payload.message || "").trim();
+
+    if (!subject || !message) {
+      throw new Error("Subject and message are required.");
+    }
+
+    var sheet = getOrCreateFeedbackSheet_();
+    var feedbackId = buildFeedbackId_();
+    var submittedAt = new Date();
+    var submittedByEmail = String(ctx.email || Session.getActiveUser().getEmail() || "").trim();
+    var submittedByName = String(ctx.name || "").trim() || submittedByEmail || "Unknown User";
+    var systemRole = normalizeSystemRole_(ctx.systemRole);
+
+    sheet.appendRow([
+      feedbackId,
+      submittedAt,
+      submittedByName,
+      submittedByEmail,
+      systemRole,
+      feedbackType,
+      subject,
+      message,
+      "New"
+    ]);
+
+    return {
+      success: true,
+      feedbackId: feedbackId,
+      message: "Feedback submitted successfully."
+    };
+  } catch (e) {
+    Logger.log("submitFeedback error: " + e.message);
+    throw new Error("Unable to submit feedback right now.");
+  } finally {
+    try {
+      lock.releaseLock();
+    } catch (lockError) {}
+  }
+}
+
+function getFeedbackSubmissions() {
+  var ctx = getSignedInUserContext() || {};
+  if (!hasFeedbackAdminAccess_(ctx)) {
+    throw new Error("You do not have permission to view feedback.");
+  }
+
+  try {
+    var sheet = getOrCreateFeedbackSheet_();
+    if (sheet.getLastRow() < 2) return [];
+
+    var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, FEEDBACK_HEADER_ROW.length).getValues();
+    var results = [];
+
+    for (var i = data.length - 1; i >= 0; i--) {
+      var row = data[i];
+      results.push({
+        feedbackId: row[0] || "",
+        timestamp: row[1] instanceof Date ? row[1].toISOString() : String(row[1] || ""),
+        submittedByName: row[2] || "",
+        submittedByEmail: row[3] || "",
+        systemRole: normalizeSystemRole_(row[4]),
+        type: row[5] || "",
+        subject: row[6] || "",
+        message: row[7] || "",
+        status: row[8] || "New"
+      });
+    }
+
+    return results;
+  } catch (e) {
+    Logger.log("getFeedbackSubmissions error: " + e.message);
+    throw new Error("Unable to load feedback right now.");
+  }
+}
+
+function updateFeedbackStatus(feedbackId, nextStatus) {
+  var ctx = getSignedInUserContext() || {};
+  if (!hasFeedbackAdminAccess_(ctx)) {
+    throw new Error("You do not have permission to update feedback.");
+  }
+
+  var safeId = String(feedbackId || "").trim();
+  var safeStatus = String(nextStatus || "").trim();
+  if (!safeId) throw new Error("Feedback ID is required.");
+  if (FEEDBACK_STATUS_OPTIONS.indexOf(safeStatus) === -1) {
+    throw new Error("Invalid feedback status.");
+  }
+
+  try {
+    var sheet = getOrCreateFeedbackSheet_();
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) throw new Error("Feedback not found.");
+
+    var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < ids.length; i++) {
+      if (String(ids[i][0] || "").trim() === safeId) {
+        sheet.getRange(i + 2, 9).setValue(safeStatus);
+        return { success: true, feedbackId: safeId, status: safeStatus };
+      }
+    }
+
+    throw new Error("Feedback not found.");
+  } catch (e) {
+    Logger.log("updateFeedbackStatus error: " + e.message);
+    throw new Error("Unable to update feedback status right now.");
   }
 }
 

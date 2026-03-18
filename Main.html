@@ -30,15 +30,53 @@
         <select id="userDropdown"><option value="">-- Loading --</option></select>
       </div>
       <div class="toolbar-user" id="toolbarUser" aria-live="polite">
-        <img
-          id="toolbarProfileImage"
-          class="toolbar-profile-image"
-          alt="Profile"
-          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E">
-        <span id="adminBadge" class="admin-badge is-hidden">Admin</span>
-        <span id="welcomeText" class="welcome-text"></span>
+        <button id="toolbarUserButton" class="toolbar-user-button" type="button" onclick="toggleUserMenu(event)" aria-expanded="false" aria-haspopup="true">
+          <img
+            id="toolbarProfileImage"
+            class="toolbar-profile-image"
+            alt="Profile"
+            src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E">
+          <span id="adminBadge" class="admin-badge is-hidden">Admin</span>
+          <span id="welcomeText" class="welcome-text"></span>
+          <span class="toolbar-chevron" aria-hidden="true">
+            <svg viewBox="0 0 20 20" role="presentation" focusable="false">
+              <path d="M5.25 7.5L10 12.25 14.75 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+          </span>
+        </button>
+        <div id="userMenuDropdown" class="user-menu-dropdown is-hidden">
+          <button id="userMenuFeedbackInbox" class="user-menu-item is-hidden" type="button" onclick="handleUserMenuFeedbackInbox(event)">
+            Feedback Inbox
+          </button>
+          <div id="userMenuViewGroup" class="user-menu-group is-hidden">
+            <button class="user-menu-item" type="button" onclick="toggleUserSubmenu(event)">
+              <span>View Other Users&#39; List</span>
+              <span class="user-menu-chevron" aria-hidden="true">
+                <svg viewBox="0 0 20 20" role="presentation" focusable="false">
+                  <path d="M7.5 5.25L12.25 10 7.5 14.75" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </button>
+            <div id="userSubmenu" class="user-submenu is-hidden"></div>
+          </div>
+          <button class="user-menu-item is-placeholder" type="button" disabled>
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
     </div>
+
+    <button id="floatingFeedbackButton" class="floating-feedback-button is-hidden" type="button" onclick="openFeedbackModal()" aria-label="Submit Feedback" title="Submit Feedback">
+      <span class="floating-feedback-button-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+          <path d="M6.75 5h10.5A2.75 2.75 0 0 1 20 7.75v6.5A2.75 2.75 0 0 1 17.25 17H11.4l-3.58 2.8c-.61.48-1.5.04-1.5-.74V17H6.75A2.75 2.75 0 0 1 4 14.25v-6.5A2.75 2.75 0 0 1 6.75 5zm0 1.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h1.07v1.06L10.77 15.5h6.48c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H6.75z" stroke="currentColor" stroke-width="0.7" stroke-linejoin="round"></path>
+          <circle cx="8.75" cy="11" r="1" stroke="currentColor" stroke-width="0.35"></circle>
+          <circle cx="12" cy="11" r="1" stroke="currentColor" stroke-width="0.35"></circle>
+          <circle cx="15.25" cy="11" r="1" stroke="currentColor" stroke-width="0.35"></circle>
+        </svg>
+      </span>
+    </button>
+    <div id="feedbackToast" class="feedback-toast" aria-live="polite"></div>
 
     <div class="container" id="taskContainer">
       <div class="loading">Loading...</div>
@@ -56,6 +94,53 @@
         <div class="modal-actions">
           <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
           <button class="btn-modal-confirm" id="modalConfirmBtn" onclick="executeModalAction()">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="feedbackModal">
+      <div class="modal-dialog feedback-modal-dialog">
+        <div class="modal-title feedback-modal-title">Submit Feedback</div>
+        <div class="feedback-form">
+          <label for="feedbackType">Feedback Type: <span class="required-indicator" aria-hidden="true">*</span></label>
+          <select id="feedbackType" required>
+            <option value="General Feedback">General Feedback</option>
+            <option value="Improvement">Improvement</option>
+            <option value="Feature Request">Feature Request</option>
+            <option value="Bug">Bug</option>
+          </select>
+
+          <label for="feedbackSubject">Short Descriptive Title: <span class="required-indicator" aria-hidden="true">*</span></label>
+          <input id="feedbackSubject" type="text" maxlength="150" placeholder="Short summary" required>
+
+          <label for="feedbackMessage">Details: <span class="required-indicator" aria-hidden="true">*</span></label>
+          <textarea id="feedbackMessage" rows="6" maxlength="5000" placeholder="Describe the issue, suggestion, or request" required></textarea>
+
+          <div class="feedback-inline-note" id="feedbackMetaNote">Your name, email, timestamp, and current system role will be recorded automatically.</div>
+          <div class="feedback-form-error is-hidden" id="feedbackFormError"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" type="button" onclick="closeFeedbackModal()">Cancel</button>
+          <button class="btn-modal-confirm" id="feedbackSubmitButton" type="button" onclick="submitFeedbackForm()">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="feedbackInboxModal">
+      <div class="modal-dialog feedback-inbox-dialog">
+        <div class="modal-title feedback-modal-title">Feedback Inbox</div>
+        <div class="feedback-inbox-layout">
+          <div class="feedback-list-panel">
+            <div class="feedback-panel-title">Submitted Feedback</div>
+            <div id="feedbackInboxTableWrap" class="feedback-table-wrap"></div>
+          </div>
+          <div class="feedback-detail-panel" id="feedbackDetailPanel">
+            <div class="feedback-panel-title">Feedback Details</div>
+            <div class="feedback-detail-empty">Select a feedback item to view the full message.</div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-modal-cancel" type="button" onclick="closeFeedbackInbox()">Close</button>
         </div>
       </div>
     </div>

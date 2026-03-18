@@ -5,6 +5,11 @@
   var pendingAction = null; 
   var taskContainerTransitionTimer = null;
   var currentUserContext = null;
+  var signedInUserName = "";
+  var activeViewedUser = "";
+  var feedbackItems = [];
+  var selectedFeedbackId = "";
+  var feedbackToastTimer = null;
   var fallbackProfileImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E";
   var fallbackCategoryIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23eef3fb%22/%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2210%22%20fill%3D%22%23607a96%22/%3E%3C/svg%3E";
   var avatarColorPalette = ['#c96f3b', '#5f7f96', '#7d8f47', '#b25d73', '#4b7a6f', '#8a6bb8'];
@@ -13,9 +18,31 @@
     document.getElementById('userDropdown').addEventListener('change', fetchTasks);
     document.getElementById('statusFilter').addEventListener('change', fetchTasks);
     document.getElementById('typeFilter').addEventListener('change', renderTasks);
+    document.getElementById('feedbackModal').addEventListener('click', handleOverlayClose_);
+    document.getElementById('feedbackInboxModal').addEventListener('click', handleOverlayClose_);
+    document.addEventListener('click', handleDocumentClick_);
+    document.addEventListener('keydown', handleDocumentKeydown_);
 
     bootstrapAppAuthFlow();
   });
+
+  function handleOverlayClose_(event) {
+    if (event.target.id === 'feedbackModal') closeFeedbackModal();
+    if (event.target.id === 'feedbackInboxModal') closeFeedbackInbox();
+  }
+
+  function handleDocumentClick_(event) {
+    var toolbarUser = document.getElementById('toolbarUser');
+    if (toolbarUser && !toolbarUser.contains(event.target)) {
+      closeUserMenu();
+    }
+  }
+
+  function handleDocumentKeydown_(event) {
+    if (event.key === 'Escape') {
+      closeUserMenu();
+    }
+  }
 
   function bootstrapAppAuthFlow() {
     google.script.run
@@ -41,6 +68,10 @@
     var welcomeEl = document.getElementById('welcomeText');
     var avatarEl = document.getElementById('toolbarProfileImage');
     var adminBadge = document.getElementById('adminBadge');
+    var inboxButton = document.getElementById('userMenuFeedbackInbox');
+    var viewGroup = document.getElementById('userMenuViewGroup');
+    var feedbackButton = document.getElementById('floatingFeedbackButton');
+    var toolbarUserButton = document.getElementById('toolbarUserButton');
 
     userDropdown.classList.add('is-hidden');
     userDropdown.innerHTML = '<option value=""></option>';
@@ -50,6 +81,11 @@
     avatarEl.src = fallbackProfileImage;
     avatarEl.classList.add('is-fallback');
     adminBadge.classList.add('is-hidden');
+    inboxButton.classList.add('is-hidden');
+    viewGroup.classList.add('is-hidden');
+    feedbackButton.classList.add('is-hidden');
+    toolbarUserButton.disabled = true;
+    closeUserMenu();
 
     var clickHereHtml = authorizationUrl
       ? '<a href="' + escapeHtml_(authorizationUrl) + '" target="_top" rel="noopener">Click Here</a>'
@@ -92,6 +128,10 @@
     var welcomeEl = document.getElementById('welcomeText');
     var avatarEl = document.getElementById('toolbarProfileImage');
     var adminBadge = document.getElementById('adminBadge');
+    var inboxButton = document.getElementById('userMenuFeedbackInbox');
+    var viewGroup = document.getElementById('userMenuViewGroup');
+    var feedbackButton = document.getElementById('floatingFeedbackButton');
+    var toolbarUserButton = document.getElementById('toolbarUserButton');
 
     userDropdown.classList.add('is-hidden');
     userDropdown.innerHTML = '<option value=""></option>';
@@ -101,17 +141,23 @@
     welcomeEl.textContent = "";
     avatarEl.src = fallbackProfileImage;
     avatarEl.classList.add('is-fallback');
+    inboxButton.classList.add('is-hidden');
+    viewGroup.classList.add('is-hidden');
+    feedbackButton.classList.add('is-hidden');
+    toolbarUserButton.disabled = true;
+    closeUserMenu();
 
     setTaskContainerHtml('<div class="loading auth-required">Please reopen the EDI Hub using your CIA FIRST Google account (@ciaschool.edu.kh) to view personalised items.</div>');
   }
 
   function applyWelcomeContext(ctx) {
-    var welcomeEl = document.getElementById('welcomeText');
     var profileImageEl = document.getElementById('toolbarProfileImage');
     var displayName = String((ctx && ctx.name) || "").trim();
     var displayEmail = String((ctx && ctx.email) || "").trim();
     if (!displayName) displayName = displayEmail || "User";
-    welcomeEl.textContent = "Welcome, " + displayName;
+    signedInUserName = displayName;
+    if (!activeViewedUser) activeViewedUser = displayName;
+    updateToolbarIdentity();
     profileImageEl.src = buildInitialAvatarDataUri_(displayName, displayEmail);
     profileImageEl.classList.add('is-fallback');
   }
@@ -140,6 +186,10 @@
   function applyRoleToolbarMode(ctx) {
     var dropdown = document.getElementById('userDropdown');
     var adminBadge = document.getElementById('adminBadge');
+    var inboxButton = document.getElementById('userMenuFeedbackInbox');
+    var viewGroup = document.getElementById('userMenuViewGroup');
+    var feedbackButton = document.getElementById('floatingFeedbackButton');
+    var toolbarUserButton = document.getElementById('toolbarUserButton');
     var signedInName = String((ctx && ctx.name) || "").trim();
     var role = String((ctx && ctx.systemRole) || "User").trim().toLowerCase();
     var isSuperAdmin = (role === "super admin");
@@ -147,25 +197,33 @@
     var hasAdminAccess = isAdmin || isSuperAdmin;
     document.getElementById('typeFilter').disabled = false;
     document.getElementById('statusFilter').disabled = false;
+    feedbackButton.classList.remove('is-hidden');
+    toolbarUserButton.disabled = false;
 
     adminBadge.classList.remove('super-admin-badge');
+    dropdown.classList.add('is-hidden');
 
     if (!hasAdminAccess) {
       adminBadge.classList.add('is-hidden');
-      dropdown.classList.add('is-hidden');
+      inboxButton.classList.add('is-hidden');
+      viewGroup.classList.add('is-hidden');
       if (signedInName) {
         dropdown.innerHTML = '<option value="' + escapeHtml_(signedInName) + '">' + escapeHtml_(signedInName) + '</option>';
         dropdown.value = signedInName;
+        activeViewedUser = signedInName;
+        updateToolbarIdentity();
         fetchTasks();
       } else {
         setTaskContainerHtml('<div class="loading">Signed-in user not found in Data sheet.</div>');
       }
+      closeUserMenu();
       return;
     }
 
     adminBadge.classList.remove('is-hidden');
+    inboxButton.classList.remove('is-hidden');
+    viewGroup.classList.remove('is-hidden');
     if (isSuperAdmin) adminBadge.classList.add('super-admin-badge');
-    dropdown.classList.remove('is-hidden');
     google.script.run
       .withSuccessHandler(function(names) {
         globalStaffList = names || [];
@@ -192,7 +250,12 @@
           }
           dropdown.value = signedInName;
         }
-        if (dropdown.value) fetchTasks();
+        renderViewUserSubmenu();
+        updateToolbarIdentity();
+        if (dropdown.value) {
+          activeViewedUser = dropdown.value;
+          fetchTasks();
+        }
       })
       .withFailureHandler(function(error) {
         console.error("Names Error:", error);
@@ -210,9 +273,335 @@
       .replace(/'/g, "&#39;");
   }
 
+  function isFeedbackAdmin_() {
+    var role = String((currentUserContext && currentUserContext.systemRole) || "").toLowerCase().trim();
+    return role === 'admin' || role === 'super admin';
+  }
+
+  function updateToolbarIdentity() {
+    var welcomeEl = document.getElementById('welcomeText');
+    var toolbar = document.querySelector('.app-toolbar');
+    var viewingOtherUser = isFeedbackAdmin_() && activeViewedUser && signedInUserName && activeViewedUser !== signedInUserName;
+
+    if (viewingOtherUser) {
+      toolbar.classList.add('is-viewing-other-user');
+      welcomeEl.innerHTML = '<span class="viewing-mode-label">Viewing ' + escapeHtml_(activeViewedUser) + '&#39;s List</span><span class="viewing-mode-separator">|</span><span class="viewing-mode-link" onclick="returnToOwnView(event)">Back to my view</span>';
+      return;
+    }
+
+    toolbar.classList.remove('is-viewing-other-user');
+    welcomeEl.textContent = 'Welcome, ' + (signedInUserName || 'User');
+  }
+
+  function toggleUserMenu(event) {
+    if (event) event.stopPropagation();
+    var button = document.getElementById('toolbarUserButton');
+    if (!button || button.disabled) return;
+
+    var menu = document.getElementById('userMenuDropdown');
+    var isOpening = menu.classList.contains('is-hidden');
+    if (isOpening) {
+      menu.classList.remove('is-hidden');
+      button.classList.add('is-open');
+      button.setAttribute('aria-expanded', 'true');
+      renderViewUserSubmenu();
+      return;
+    }
+    closeUserMenu();
+  }
+
+  function closeUserMenu() {
+    var menu = document.getElementById('userMenuDropdown');
+    var submenu = document.getElementById('userSubmenu');
+    var button = document.getElementById('toolbarUserButton');
+    if (!menu || !submenu || !button) return;
+    menu.classList.add('is-hidden');
+    submenu.classList.add('is-hidden');
+    button.classList.remove('is-open');
+    button.setAttribute('aria-expanded', 'false');
+  }
+
+  function toggleUserSubmenu(event) {
+    if (event) event.stopPropagation();
+    var submenu = document.getElementById('userSubmenu');
+    if (!submenu) return;
+    renderViewUserSubmenu();
+    submenu.classList.toggle('is-hidden');
+  }
+
+  function renderViewUserSubmenu() {
+    var submenu = document.getElementById('userSubmenu');
+    if (!submenu || !isFeedbackAdmin_()) return;
+
+    var html = '';
+    var options = [];
+    for (var i = 0; i < globalStaffList.length; i++) {
+      if (globalStaffList[i] && globalStaffList[i] !== signedInUserName) {
+        options.push(globalStaffList[i]);
+      }
+    }
+
+    if (!options.length) {
+      submenu.innerHTML = '<button class="user-submenu-item" type="button" disabled>No other users found</button>';
+      return;
+    }
+
+    for (var j = 0; j < options.length; j++) {
+      var encodedName = encodeURIComponent(options[j]);
+      var activeClass = options[j] === activeViewedUser ? ' is-active' : '';
+      html += '<button class="user-submenu-item' + activeClass + '" type="button" onclick="selectViewedUserByEncoded_(\'' + encodedName + '\', event)">' + escapeHtml_(options[j]) + '</button>';
+    }
+
+    submenu.innerHTML = html;
+  }
+
+  function selectViewedUserByEncoded_(encodedName, event) {
+    if (event) event.stopPropagation();
+    var userName = decodeURIComponent(encodedName || '');
+    if (!userName) return;
+
+    var dropdown = document.getElementById('userDropdown');
+    dropdown.value = userName;
+    activeViewedUser = userName;
+    updateToolbarIdentity();
+    closeUserMenu();
+    fetchTasks();
+  }
+
+  function returnToOwnView(event) {
+    if (event) event.stopPropagation();
+    if (!signedInUserName) return false;
+
+    var dropdown = document.getElementById('userDropdown');
+    dropdown.value = signedInUserName;
+    activeViewedUser = signedInUserName;
+    updateToolbarIdentity();
+    closeUserMenu();
+    fetchTasks();
+    return false;
+  }
+
+  function handleUserMenuFeedbackInbox(event) {
+    if (event) event.stopPropagation();
+    closeUserMenu();
+    openFeedbackInbox();
+  }
+
+  function openFeedbackModal() {
+    resetFeedbackForm();
+    document.getElementById('feedbackModal').classList.add('active');
+  }
+
+  function closeFeedbackModal() {
+    document.getElementById('feedbackModal').classList.remove('active');
+    resetFeedbackForm();
+  }
+
+  function resetFeedbackForm() {
+    document.getElementById('feedbackType').value = 'General Feedback';
+    document.getElementById('feedbackSubject').value = '';
+    document.getElementById('feedbackMessage').value = '';
+    hideFeedbackError();
+    setFeedbackSubmitBusy_(false);
+  }
+
+  function showFeedbackError(message) {
+    var errorEl = document.getElementById('feedbackFormError');
+    errorEl.textContent = message || 'Unable to submit feedback.';
+    errorEl.classList.remove('is-hidden');
+  }
+
+  function hideFeedbackError() {
+    document.getElementById('feedbackFormError').classList.add('is-hidden');
+    document.getElementById('feedbackFormError').textContent = '';
+  }
+
+  function setFeedbackSubmitBusy_(isBusy) {
+    var button = document.getElementById('feedbackSubmitButton');
+    button.disabled = !!isBusy;
+    button.textContent = isBusy ? 'Submitting...' : 'Submit';
+  }
+
+  function submitFeedbackForm() {
+    var payload = {
+      type: document.getElementById('feedbackType').value,
+      subject: String(document.getElementById('feedbackSubject').value || '').trim(),
+      message: String(document.getElementById('feedbackMessage').value || '').trim()
+    };
+
+    if (!payload.type || !payload.subject || !payload.message) {
+      showFeedbackError('Please complete all fields before submitting feedback.');
+      return;
+    }
+
+    hideFeedbackError();
+    setFeedbackSubmitBusy_(true);
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        setFeedbackSubmitBusy_(false);
+        closeFeedbackModal();
+        showFeedbackToast((result && result.message) || 'Feedback submitted successfully.');
+      })
+      .withFailureHandler(function(error) {
+        console.error('submitFeedback failed:', error);
+        setFeedbackSubmitBusy_(false);
+        showFeedbackError((error && error.message) || 'Unable to submit feedback right now.');
+      })
+      .submitFeedback(payload);
+  }
+
+  function showFeedbackToast(message) {
+    var toast = document.getElementById('feedbackToast');
+    toast.textContent = message;
+    toast.classList.add('active');
+    if (feedbackToastTimer) clearTimeout(feedbackToastTimer);
+    feedbackToastTimer = setTimeout(function() {
+      toast.classList.remove('active');
+    }, 2600);
+  }
+
+  function openFeedbackInbox() {
+    if (!isFeedbackAdmin_()) return;
+
+    selectedFeedbackId = '';
+    feedbackItems = [];
+    document.getElementById('feedbackInboxTableWrap').innerHTML = '<div class="feedback-empty-state">Loading feedback...</div>';
+    document.getElementById('feedbackDetailPanel').innerHTML = '<div class="feedback-panel-title">Feedback Details</div><div class="feedback-detail-empty">Select a feedback item to view the full message.</div>';
+    document.getElementById('feedbackInboxModal').classList.add('active');
+
+    google.script.run
+      .withSuccessHandler(function(items) {
+        feedbackItems = items || [];
+        renderFeedbackInboxTable();
+        if (feedbackItems.length > 0) {
+          selectFeedbackItem(feedbackItems[0].feedbackId);
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('getFeedbackSubmissions failed:', error);
+        document.getElementById('feedbackInboxTableWrap').innerHTML = '<div class="feedback-empty-state">Unable to load feedback right now.</div>';
+      })
+      .getFeedbackSubmissions();
+  }
+
+  function closeFeedbackInbox() {
+    document.getElementById('feedbackInboxModal').classList.remove('active');
+  }
+
+  function renderFeedbackInboxTable() {
+    var wrap = document.getElementById('feedbackInboxTableWrap');
+    if (!feedbackItems.length) {
+      wrap.innerHTML = '<div class="feedback-empty-state">No feedback has been submitted yet.</div>';
+      document.getElementById('feedbackDetailPanel').innerHTML = '<div class="feedback-panel-title">Feedback Details</div><div class="feedback-detail-empty">New submissions will appear here.</div>';
+      return;
+    }
+
+    var html = '<table class="feedback-table"><thead><tr><th>Type</th><th>Subject</th><th>Submitted By</th><th>Date</th><th>Status</th></tr></thead><tbody>';
+    for (var i = 0; i < feedbackItems.length; i++) {
+      var item = feedbackItems[i];
+      var isSelected = item.feedbackId === selectedFeedbackId;
+      html += '<tr class="feedback-row' + (isSelected ? ' is-selected' : '') + '" onclick="selectFeedbackItem(\'' + escapeHtml_(item.feedbackId) + '\')">';
+      html += '<td>' + escapeHtml_(item.type || '') + '</td>';
+      html += '<td>' + escapeHtml_(item.subject || '') + '</td>';
+      html += '<td>' + escapeHtml_(item.submittedByName || item.submittedByEmail || '') + '</td>';
+      html += '<td>' + escapeHtml_(formatFeedbackDate_(item.timestamp)) + '</td>';
+      html += '<td><span class="feedback-status-pill">' + escapeHtml_(item.status || 'New') + '</span></td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  function selectFeedbackItem(feedbackId) {
+    selectedFeedbackId = feedbackId;
+    renderFeedbackInboxTable();
+
+    var selected = null;
+    for (var i = 0; i < feedbackItems.length; i++) {
+      if (feedbackItems[i].feedbackId === feedbackId) {
+        selected = feedbackItems[i];
+        break;
+      }
+    }
+
+    if (!selected) return;
+
+    var html = '';
+    html += '<div class="feedback-panel-title">Feedback Details</div>';
+    html += '<div class="feedback-detail-subject">' + escapeHtml_(selected.subject || '(No subject)') + '</div>';
+    html += '<div class="feedback-detail-meta">';
+    html += '<div><strong>Type:</strong> ' + escapeHtml_(selected.type || '') + '</div>';
+    html += '<div><strong>Submitted by:</strong> ' + escapeHtml_(selected.submittedByName || 'Unknown') + ' (' + escapeHtml_(selected.submittedByEmail || '') + ')</div>';
+    html += '<div><strong>Date:</strong> ' + escapeHtml_(formatFeedbackDate_(selected.timestamp)) + '</div>';
+    html += '<div><strong>System role:</strong> ' + escapeHtml_(selected.systemRole || 'User') + '</div>';
+    html += '<div><strong>Feedback ID:</strong> ' + escapeHtml_(selected.feedbackId || '') + '</div>';
+    html += '</div>';
+    html += '<div class="feedback-detail-message">' + escapeHtml_(selected.message || '') + '</div>';
+
+    if (isFeedbackAdmin_()) {
+      html += '<div class="feedback-detail-status">';
+      html += '<strong>Status</strong>';
+      html += '<select id="feedbackStatusSelect" onchange="handleFeedbackStatusChange(\'' + escapeHtml_(selected.feedbackId) + '\')">';
+      html += renderFeedbackStatusOptions_(selected.status || 'New');
+      html += '</select>';
+      html += '</div>';
+    }
+
+    document.getElementById('feedbackDetailPanel').innerHTML = html;
+  }
+
+  function renderFeedbackStatusOptions_(selectedStatus) {
+    var options = ['New', 'Reviewed', 'In Progress', 'Closed'];
+    var html = '';
+    for (var i = 0; i < options.length; i++) {
+      var isSelected = options[i] === selectedStatus ? ' selected' : '';
+      html += '<option value="' + escapeHtml_(options[i]) + '"' + isSelected + '>' + escapeHtml_(options[i]) + '</option>';
+    }
+    return html;
+  }
+
+  function handleFeedbackStatusChange(feedbackId) {
+    var select = document.getElementById('feedbackStatusSelect');
+    if (!select) return;
+    var nextStatus = select.value;
+    select.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        var updatedStatus = (result && result.status) || nextStatus;
+        for (var i = 0; i < feedbackItems.length; i++) {
+          if (feedbackItems[i].feedbackId === feedbackId) {
+            feedbackItems[i].status = updatedStatus;
+            break;
+          }
+        }
+        select.disabled = false;
+        select.value = updatedStatus;
+        renderFeedbackInboxTable();
+        showFeedbackToast('Feedback status updated.');
+      })
+      .withFailureHandler(function(error) {
+        console.error('updateFeedbackStatus failed:', error);
+        select.disabled = false;
+        showFeedbackToast((error && error.message) || 'Unable to update feedback status right now.');
+        selectFeedbackItem(feedbackId);
+      })
+      .updateFeedbackStatus(feedbackId, nextStatus);
+  }
+
+  function formatFeedbackDate_(value) {
+    if (!value) return '';
+    var d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return formatD(d) + ' ' + formatT(d);
+  }
+
   function fetchTasks() {
   var user = document.getElementById('userDropdown').value;
   if (!user) return;
+  activeViewedUser = user;
+  updateToolbarIdentity();
 
   setTaskContainerHtml(renderTaskSkeletons(4));
 
