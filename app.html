@@ -10,6 +10,7 @@
   var feedbackItems = [];
   var selectedFeedbackId = "";
   var feedbackToastTimer = null;
+  var appBootstrapped = false;
   var fallbackProfileImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E";
   var fallbackCategoryIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23eef3fb%22/%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2210%22%20fill%3D%22%23607a96%22/%3E%3C/svg%3E";
   var avatarColorPalette = ['#c96f3b', '#5f7f96', '#7d8f47', '#b25d73', '#4b7a6f', '#8a6bb8'];
@@ -22,9 +23,35 @@
     document.getElementById('feedbackInboxModal').addEventListener('click', handleOverlayClose_);
     document.addEventListener('click', handleDocumentClick_);
     document.addEventListener('keydown', handleDocumentKeydown_);
+    window.addEventListener('resize', handleResponsiveGate_);
 
-    bootstrapAppAuthFlow();
+    handleResponsiveGate_();
   });
+
+  function isMobileViewport_() {
+    return window.innerWidth <= 768;
+  }
+
+  function handleResponsiveGate_() {
+    var isMobile = isMobileViewport_();
+    var mobileBlock = document.getElementById('mobileBlockScreen');
+    var appShell = document.getElementById('appShell');
+
+    if (isMobile) {
+      mobileBlock.classList.remove('is-hidden');
+      appShell.classList.add('is-hidden');
+      closeUserMenu();
+      return;
+    }
+
+    mobileBlock.classList.add('is-hidden');
+    appShell.classList.remove('is-hidden');
+
+    if (!appBootstrapped) {
+      appBootstrapped = true;
+      bootstrapAppAuthFlow();
+    }
+  }
 
   function handleOverlayClose_(event) {
     if (event.target.id === 'feedbackModal') closeFeedbackModal();

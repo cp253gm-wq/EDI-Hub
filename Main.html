@@ -5,6 +5,17 @@
 <?!= include('styles'); ?>
   </head>
   <body>
+    <div id="mobileBlockScreen" class="mobile-block-screen is-hidden">
+      <div class="mobile-block-content">
+<img src="<?!= mobileBlockImage ?>" alt="EDI Hub mobile notice" class="mobile-block-image">
+
+<div class="mobile-block-title">The EDI Hub is not yet optimised for mobile browsers.</div>
+<div class="mobile-block-copy">A mobile-friendly version is coming soon.</div>
+<div class="mobile-block-copy">For the best experience, please reopen this page on a desktop computer, laptop, or tablet.</div>
+      </div>
+    </div>
+
+    <div id="appShell">
     <div class="app-toolbar">
       <div class="logo-container">
         <img src="<?!= logoData ?>" alt="Logo" id="appLogo">
@@ -143,6 +154,7 @@
           <button class="btn-modal-cancel" type="button" onclick="closeFeedbackInbox()">Close</button>
         </div>
       </div>
+    </div>
     </div>
 
 <script>

@@ -24,9 +24,9 @@
  * ============================================================================
  */
 
-const APP_VERSION = "V2.4.4"; // manual, meaningful
-const APP_COMMIT_FALLBACK = "local";
-const APP_COPYRIGHT_YEAR = "2026";
+const APP_VERSION = "V2.5.3";
+const APP_COMMIT = "live";
+const APP_COPYRIGHT_YEAR = new Date().getFullYear().toString();
 const FEEDBACK_SHEET_NAME = "Feedback";
 const FEEDBACK_HEADER_ROW = [
   "Feedback ID",
@@ -80,12 +80,13 @@ function include(filename) {
 function prepareTemplate() {
   var template = HtmlService.createTemplateFromFile('Main');
   var appMeta = getAppTemplateMeta_();
-  template.appVersion = appMeta.version;
-  template.appCommit = appMeta.commit;
-  template.appCopyrightYear = appMeta.copyrightYear;
+template.appVersion = appMeta.appVersion;
+template.appCommit = appMeta.appCommit;
+template.appCopyrightYear = appMeta.appCopyrightYear;
   
   // Fetch your Logo
   template.logoData = getBase64FromDrive('19mPJKHJqa1jxhncy_vMKL2Ji75bzX8Zb');
+  template.mobileBlockImage = getBase64FromDrive('1lcNSdKju84Rh-pZ54wVoo3KZqJPmYcp9');
 
   // Fetch your 5 Category Icons + Default using your exact IDs.
   // Any missing icon gracefully falls back to Default.
@@ -109,21 +110,10 @@ function prepareTemplate() {
 }
 
 function getAppTemplateMeta_() {
-  var commit = APP_COMMIT_FALLBACK;
-
-  try {
-    var deployments = ScriptApp.getDeploymentInfo();
-    if (deployments && deployments.length) {
-      commit = String(deployments[deployments.length - 1].getDeploymentId() || "").slice(0, 7) || APP_COMMIT_FALLBACK;
-    }
-  } catch (e) {
-    Logger.log("Unable to resolve deployment commit: " + e.message);
-  }
-
   return {
-    version: APP_VERSION,
-    commit: commit,
-    copyrightYear: APP_COPYRIGHT_YEAR
+    appVersion: APP_VERSION,
+    appCommit: APP_COMMIT,
+    appCopyrightYear: APP_COPYRIGHT_YEAR
   };
 }
 
