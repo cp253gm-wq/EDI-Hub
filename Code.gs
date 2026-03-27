@@ -563,13 +563,11 @@ var includeArchived = options.includeArchived === true;
         var statusLower = String(baseStatus || "").toLowerCase();
         var isClosedStatus = (statusLower === "complete" || statusLower === "archived" || statusLower === "cancelled");
         var isOverdueDeadline = false;
+        var isDeadlineCategory = categoryLower.indexOf("deadline") !== -1;
+        var isTaskCategory = categoryLower.indexOf("task") !== -1;
+        var deadlineTargetDate = null;
 
-        var usesDeadlineDateLogic = (
-          categoryLower.indexOf("deadline") !== -1 ||
-          (categoryLower.indexOf("task") !== -1 && isValidDate(deadlineDate ? new Date(deadlineDate) : null))
-        );
-
-        if (usesDeadlineDateLogic && !isClosedStatus && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
+        if ((isDeadlineCategory || isTaskCategory) && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
           var dLineD = new Date(deadlineDate);
           var dLineT = deadlineTime ? new Date(deadlineTime) : null;
           var targetDeadline = new Date(dLineD.getTime());
@@ -578,11 +576,17 @@ var includeArchived = options.includeArchived === true;
           } else {
             targetDeadline.setHours(23, 59, 59, 999);
           }
-          isOverdueDeadline = now.getTime() > targetDeadline.getTime();
+          deadlineTargetDate = targetDeadline;
+          if (isDeadlineCategory && !isClosedStatus) {
+            isOverdueDeadline = now.getTime() > targetDeadline.getTime();
+          }
         }
 
-        if (isValidDate(activeTargetDate) && !isOverdueDeadline) {
-          var timeSinceExpiry = now.getTime() - activeTargetDate.getTime();
+        var archiveTargetDate = isDeadlineCategory ? null : (deadlineTargetDate || activeTargetDate);
+        archiveSortDate = archiveTargetDate || archiveSortDate;
+
+        if (isValidDate(archiveTargetDate)) {
+          var timeSinceExpiry = now.getTime() - archiveTargetDate.getTime();
           if (timeSinceExpiry >= ms72Hours) {
             isArchived = true;
           } else if (timeSinceExpiry > 0) {
@@ -590,7 +594,7 @@ var includeArchived = options.includeArchived === true;
             var hours = Math.ceil(remaining / msInHour);
             archiveLabel = hours > 24 ? "Archiving in " + Math.ceil(hours / 24) + " days..." : "Archiving in " + hours + " hours...";
           }
-        } else if (dateAdded) {
+        } else if (!isDeadlineCategory && dateAdded) {
           var dAddedValid = new Date(dateAdded);
           if (isValidDate(dAddedValid)) {
             var timeSinceAdded = now.getTime() - dAddedValid.getTime();
