@@ -857,7 +857,7 @@
     var cat = (t.category || "").toString().toLowerCase();
     var s = (t.status || "Active");
     if (s === 'Complete' || s === 'Archived' || s === 'Cancelled') return false;
-    if (cat.indexOf("deadline") === -1) return false;
+    if (cat.indexOf("deadline") === -1 && !(cat.indexOf("task") !== -1 && t.deadlineDate)) return false;
     
     var dLineD = parseDateOnly(t.deadlineDate);
     if (!dLineD) return false;
@@ -870,6 +870,12 @@
         targetDeadline.setHours(23, 59, 59, 999); 
     }
     return nowMs > targetDeadline.getTime();
+  }
+
+  function isDeadlineStyleItem_(task) {
+    var cat = ((task && task.category) || "").toString().toLowerCase();
+    if (cat.indexOf("deadline") !== -1) return true;
+    return cat.indexOf("task") !== -1 && !!task.deadlineDate;
   }
 
   function renderTasks() {
@@ -992,7 +998,7 @@
         
         if (isOverdueActive) {
             overdueTagHtml = '<span class="tag-overdue">🚨 Overdue!</span>';
-        } else if (cat.toLowerCase().indexOf("deadline") !== -1 && t.deadlineDate && s !== 'Complete' && s !== 'Archived' && s !== 'Cancelled') {
+        } else if (isDeadlineStyleItem_(t) && t.deadlineDate && s !== 'Complete' && s !== 'Archived' && s !== 'Cancelled') {
             var dLineD = parseDateOnly(t.deadlineDate);
             var dLineT = parseTimeOnly(t.deadlineTime);
             var targetDeadline = new Date(dLineD.getTime());
@@ -1203,15 +1209,16 @@
     }
   }
 }
-        else if (cat.toLowerCase().indexOf("deadline") !== -1) {
+        else if (isDeadlineStyleItem_(t)) {
           if (dLineD) {
+             var deadlineLabel = cat.toLowerCase().indexOf("task") !== -1 ? "Requested Completion Date/Time:" : "Deadline:";
              var dLineT = parseTimeOnly(t.deadlineTime);
              if (dLineT) {
-               html += '<div class="inline-section"><b>Deadline:</b> <span style="color: #d32f2f; font-weight: 500;">' + formatD(dLineD) + ' at ' + formatT(dLineT) + '</span></div>';
+               html += '<div class="inline-section"><b>' + deadlineLabel + '</b> <span style="color: #d32f2f; font-weight: 500;">' + formatD(dLineD) + ' at ' + formatT(dLineT) + '</span></div>';
                var dLineDTime = new Date(dLineD); dLineDTime.setHours(dLineT.getHours(), dLineT.getMinutes());
                calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrTime(dLineDTime) + "/" + toCalStrTime(dLineDTime) + "&details=" + calDetails;
              } else {
-               html += '<div class="inline-section"><b>Deadline:</b> <span style="color: #d32f2f; font-weight: 500;">' + formatD(dLineD) + '</span></div>';
+               html += '<div class="inline-section"><b>' + deadlineLabel + '</b> <span style="color: #d32f2f; font-weight: 500;">' + formatD(dLineD) + '</span></div>';
                var calEndDLine = new Date(dLineD); calEndDLine.setDate(calEndDLine.getDate() + 1);
                calUrl = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" + calTitle + "&dates=" + toCalStrAllDay(dLineD) + "/" + toCalStrAllDay(calEndDLine) + "&details=" + calDetails;
              }

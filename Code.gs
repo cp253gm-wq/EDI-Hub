@@ -564,7 +564,12 @@ var includeArchived = options.includeArchived === true;
         var isClosedStatus = (statusLower === "complete" || statusLower === "archived" || statusLower === "cancelled");
         var isOverdueDeadline = false;
 
-        if (categoryLower.indexOf("deadline") !== -1 && !isClosedStatus && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
+        var usesDeadlineDateLogic = (
+          categoryLower.indexOf("deadline") !== -1 ||
+          (categoryLower.indexOf("task") !== -1 && isValidDate(deadlineDate ? new Date(deadlineDate) : null))
+        );
+
+        if (usesDeadlineDateLogic && !isClosedStatus && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
           var dLineD = new Date(deadlineDate);
           var dLineT = deadlineTime ? new Date(deadlineTime) : null;
           var targetDeadline = new Date(dLineD.getTime());
