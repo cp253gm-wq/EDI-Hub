@@ -524,7 +524,24 @@ var includeArchived = options.includeArchived === true;
         var vacationEndDate   = row[14] || ""; // Column O (Date)
         var deadlineDate      = row[15] || ""; // Column P (Date)
         var deadlineTime      = row[16] || ""; // Column Q (Time)
-        var baseStatus = latestStatusMap[idStr] || row[17] || "Active";
+        var category = row[2] || "";
+        var categoryLower = String(category || "").toLowerCase();
+        var hasUserStatus = Object.prototype.hasOwnProperty.call(latestStatusMap, idStr);
+        var explicitStatus = hasUserStatus ? String(latestStatusMap[idStr] || "") : "";
+        var defaultStatus = String(row[17] || "");
+        var baseStatus = explicitStatus || defaultStatus || "Active";
+
+        if (String(baseStatus).toLowerCase().trim() === "completed") {
+          baseStatus = "Complete";
+        }
+
+        if (
+          categoryLower.indexOf("vacation") !== -1 &&
+          !hasUserStatus &&
+          String(baseStatus).toLowerCase().trim() === "complete"
+        ) {
+          baseStatus = "Active";
+        }
 
         var rawStart = eventStartDate || vacationStartDate || deadlineDate; 
         var rawEnd = eventEndDate || vacationEndDate || deadlineDate; 
@@ -559,13 +576,14 @@ var includeArchived = options.includeArchived === true;
         var archiveLabel = "";
         var isArchived = false;
         var archiveSortDate = activeTargetDate;
-        var categoryLower = String(row[2] || "").toLowerCase();
         var statusLower = String(baseStatus || "").toLowerCase();
         var isClosedStatus = (statusLower === "complete" || statusLower === "archived" || statusLower === "cancelled");
         var isOverdueDeadline = false;
         var isDeadlineCategory = categoryLower.indexOf("deadline") !== -1;
         var isTaskCategory = categoryLower.indexOf("task") !== -1;
+        var isVacationCategory = categoryLower.indexOf("vacation") !== -1;
         var deadlineTargetDate = null;
+        var vacationArchiveTargetDate = null;
 
         if ((isDeadlineCategory || isTaskCategory) && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
           var dLineD = new Date(deadlineDate);
@@ -582,19 +600,27 @@ var includeArchived = options.includeArchived === true;
           }
         }
 
-        var archiveTargetDate = isDeadlineCategory ? null : (deadlineTargetDate || activeTargetDate);
+        if (isVacationCategory) {
+          var vacationArchiveBase = vacationEndDate || vacationStartDate;
+          if (isValidDate(vacationArchiveBase ? new Date(vacationArchiveBase) : null)) {
+            vacationArchiveTargetDate = new Date(vacationArchiveBase);
+            vacationArchiveTargetDate.setHours(23, 59, 59, 999);
+          }
+        }
+
+        var archiveTargetDate = isDeadlineCategory ? null : (deadlineTargetDate || vacationArchiveTargetDate || activeTargetDate);
         archiveSortDate = archiveTargetDate || archiveSortDate;
 
         if (isValidDate(archiveTargetDate)) {
           var timeSinceExpiry = now.getTime() - archiveTargetDate.getTime();
-          if (timeSinceExpiry >= ms72Hours) {
+          if (isVacationCategory ? timeSinceExpiry > 0 : timeSinceExpiry >= ms72Hours) {
             isArchived = true;
-          } else if (timeSinceExpiry > 0) {
+          } else if (timeSinceExpiry > 0 && !isVacationCategory) {
             var remaining = ms72Hours - timeSinceExpiry;
             var hours = Math.ceil(remaining / msInHour);
             archiveLabel = hours > 24 ? "Archiving in " + Math.ceil(hours / 24) + " days..." : "Archiving in " + hours + " hours...";
           }
-        } else if (!isDeadlineCategory && dateAdded) {
+        } else if (!isDeadlineCategory && !isVacationCategory && dateAdded) {
           var dAddedValid = new Date(dateAdded);
           if (isValidDate(dAddedValid)) {
             var timeSinceAdded = now.getTime() - dAddedValid.getTime();

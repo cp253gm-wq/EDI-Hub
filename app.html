@@ -878,20 +878,70 @@
     var dLineD = parseDateOnly(t.deadlineDate);
     if (!dLineD) return false;
     
-    var dLineT = parseTimeOnly(t.deadlineTime);
-    var targetDeadline = new Date(dLineD.getTime());
-    if (dLineT) {
-        targetDeadline.setHours(dLineT.getHours(), dLineT.getMinutes(), 0, 0);
-    } else {
-        targetDeadline.setHours(23, 59, 59, 999); 
-    }
+    var targetDeadline = getDateTimeOrStartOfDay_(dLineD, parseTimeOnly(t.deadlineTime));
     return nowMs > targetDeadline.getTime();
+  }
+
+  function getDateTimeOrStartOfDay_(dateValue, timeValue) {
+    if (!dateValue) return null;
+    var result = new Date(dateValue.getTime());
+    if (timeValue) {
+      result.setHours(timeValue.getHours(), timeValue.getMinutes(), 0, 0);
+    } else {
+      result.setHours(0, 0, 0, 0);
+    }
+    return result;
+  }
+
+  function getCountdownDisplayTarget_(dateValue, timeValue) {
+    if (!dateValue) return null;
+    var result = new Date(dateValue.getTime());
+    if (timeValue) {
+      result.setHours(timeValue.getHours(), timeValue.getMinutes(), 0, 0);
+    } else {
+      result.setHours(23, 59, 59, 999);
+    }
+    return result;
   }
 
   function isDeadlineStyleItem_(task) {
     var cat = ((task && task.category) || "").toString().toLowerCase();
     if (cat.indexOf("deadline") !== -1) return true;
     return cat.indexOf("task") !== -1 && !!task.deadlineDate;
+  }
+
+  function isOverdueDeadline_(item, nowMs) {
+    var cat = ((item && item.category) || "").toString().trim();
+    if (cat !== "Deadline") return false;
+    return checkOverdue(item, nowMs);
+  }
+
+  function getSortDate_(item) {
+    var cat = ((item && item.category) || "").toString().toLowerCase();
+    var fallbackDate = parseDateOnly(item && item.dateAdded);
+    if (!fallbackDate) fallbackDate = new Date(0);
+    fallbackDate = getDateTimeOrStartOfDay_(fallbackDate, null);
+
+    if (cat.indexOf("deadline") !== -1 || cat.indexOf("task") !== -1) {
+      var deadlineDate = parseDateOnly(item && item.deadlineDate);
+      if (deadlineDate) {
+        return getDateTimeOrStartOfDay_(deadlineDate, parseTimeOnly(item && item.deadlineTime));
+      }
+    }
+
+    if (cat.indexOf("event") !== -1) {
+      var eventDate = parseDateOnly(item && item.eventStartDate);
+      if (eventDate) {
+        return getDateTimeOrStartOfDay_(eventDate, parseTimeOnly(item && item.eventStartTime));
+      }
+    }
+
+    if (cat.indexOf("vacation") !== -1) {
+      var vacationDate = parseDateOnly(item && item.vacationStartDate) || parseDateOnly(item && item.vacationEndDate);
+      if (vacationDate) return getDateTimeOrStartOfDay_(vacationDate, null);
+    }
+
+    return fallbackDate;
   }
 
   function renderTasks() {
@@ -914,32 +964,13 @@
         return archivedTimeB - archivedTimeA;
       }
 
-      var overA = (typeof checkOverdue === 'function' && checkOverdue(a, now)) ? 0 : 1;
-      var overB = (typeof checkOverdue === 'function' && checkOverdue(b, now)) ? 0 : 1;
-      if (overA !== overB) return overA - overB;
-
-      var pA = (a.priority || "").toLowerCase();
-      var pB = (b.priority || "").toLowerCase();
-      var isUrgentA = pA.indexOf("urgent") !== -1 ? 0 : 1;
-      var isUrgentB = pB.indexOf("urgent") !== -1 ? 0 : 1;
-      if (isUrgentA !== isUrgentB) return isUrgentA - isUrgentB;
-
-      function getCatRank(cat) {
-        var c = (cat || "").toLowerCase();
-        if (c.indexOf("deadline") !== -1) return 1;
-        if (c.indexOf("task") !== -1) return 2;
-        if (c.indexOf("event") !== -1) return 3;
-        if (c.indexOf("information") !== -1) return 4;
-        if (c.indexOf("vacation") !== -1) return 5;
-        return 99;
+      if (statusFilter === 'Active') {
+        var overdueDeadlineA = isOverdueDeadline_(a, now) ? 0 : 1;
+        var overdueDeadlineB = isOverdueDeadline_(b, now) ? 0 : 1;
+        if (overdueDeadlineA !== overdueDeadlineB) return overdueDeadlineA - overdueDeadlineB;
       }
-      var rankA = getCatRank(a.category);
-      var rankB = getCatRank(b.category);
-      if (rankA !== rankB) return rankA - rankB;
 
-      var timeA = parseDateOnly(a.eventStartDate || a.deadlineDate || a.vacationStartDate) ? parseDateOnly(a.eventStartDate || a.deadlineDate || a.vacationStartDate).getTime() : Infinity;
-      var timeB = parseDateOnly(b.eventStartDate || b.deadlineDate || b.vacationStartDate) ? parseDateOnly(b.eventStartDate || b.deadlineDate || b.vacationStartDate).getTime() : Infinity;
-      return timeA - timeB;
+      return getSortDate_(a).getTime() - getSortDate_(b).getTime();
     });
 
     var html = '';
@@ -1010,21 +1041,26 @@
         var timeRemainingTagHtml = "";
         
         // --- UPDATED: ARCHIVE COUNTDOWN INTEGRATION ---
-        var archiveTagHtml = t.archiveLabel ? '<span class="archive-tag">📦 ' + t.archiveLabel + '</span>' : "";
+        var archiveTagHtml = (cat.toLowerCase().indexOf("vacation") === -1 && t.archiveLabel) ? '<span class="archive-tag">📦 ' + t.archiveLabel + '</span>' : "";
         
         if (isOverdueActive) {
             overdueTagHtml = '<span class="tag-overdue">🚨 Overdue!</span>';
-        } else if (isDeadlineStyleItem_(t) && t.deadlineDate && s !== 'Complete' && s !== 'Archived' && s !== 'Cancelled') {
-            var dLineD = parseDateOnly(t.deadlineDate);
-            var dLineT = parseTimeOnly(t.deadlineTime);
-            var targetDeadline = new Date(dLineD.getTime());
-            if (dLineT) {
-                targetDeadline.setHours(dLineT.getHours(), dLineT.getMinutes(), 0, 0);
-            } else {
-                targetDeadline.setHours(23, 59, 59, 999); 
+        } else if (s !== 'Complete' && s !== 'Archived' && s !== 'Cancelled') {
+            var countdownTarget = null;
+
+            if (isDeadlineStyleItem_(t) && t.deadlineDate) {
+                countdownTarget = getCountdownDisplayTarget_(parseDateOnly(t.deadlineDate), parseTimeOnly(t.deadlineTime));
+            } else if (cat.toLowerCase().indexOf("event") !== -1 && t.eventStartDate) {
+                countdownTarget = getCountdownDisplayTarget_(parseDateOnly(t.eventStartDate), parseTimeOnly(t.eventStartTime));
+            } else if (cat.toLowerCase().indexOf("vacation") !== -1) {
+                countdownTarget = getDateTimeOrStartOfDay_(
+                  parseDateOnly(t.vacationStartDate) || parseDateOnly(t.vacationEndDate),
+                  null
+                );
             }
-            
-            var diffMs = targetDeadline.getTime() - now;
+
+            if (countdownTarget) {
+            var diffMs = countdownTarget.getTime() - now;
             var diffHours = Math.floor(diffMs / (1000 * 60 * 60));
             var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             
@@ -1035,6 +1071,7 @@
               } else {
                   timeRemainingTagHtml = '<span class="tag-deadline">⏳ ' + diffDays + ' day' + (diffDays>1?'s':'') + ' remaining...</span>';
               }
+            }
             }
         }
 
