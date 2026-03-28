@@ -844,6 +844,22 @@
     return y + m + day + "T" + hr + min + "00";
   }
 
+  function getCalendarEventTitle(item) {
+    var cat = ((item && item.category) || "").toString().toLowerCase();
+    var title = ((item && item.title) || "").toString().trim();
+    var prefix = "";
+
+    if (cat.indexOf("deadline") !== -1) prefix = "Deadline: ";
+    else if (cat.indexOf("task") !== -1) prefix = "Task: ";
+    else if (cat.indexOf("vacation") !== -1) prefix = "Vacation: ";
+
+    if (prefix && title.indexOf(prefix) === 0) {
+      title = title.slice(prefix.length).trim();
+    }
+
+    return (prefix + title).trim() || "Event";
+  }
+
   function getPriorityColor(priorityStr) {
     var p = (priorityStr || "").toLowerCase();
     if (p.indexOf("high") !== -1) return "#d93025"; 
@@ -857,7 +873,7 @@
     var cat = (t.category || "").toString().toLowerCase();
     var s = (t.status || "Active");
     if (s === 'Complete' || s === 'Archived' || s === 'Cancelled') return false;
-    if (cat.indexOf("deadline") === -1 && !(cat.indexOf("task") !== -1 && t.deadlineDate)) return false;
+    if (cat.indexOf("deadline") === -1) return false;
     
     var dLineD = parseDateOnly(t.deadlineDate);
     if (!dLineD) return false;
@@ -1084,7 +1100,7 @@
 
         if (t.link) html += '<div class="inline-section"><b>Link:</b> <span>' + formatText(t.link) + '</span></div>';
 
-        var calTitle = encodeURIComponent(t.title || "Event");
+        var calTitle = encodeURIComponent(getCalendarEventTitle(t));
         var calDetails = encodeURIComponent((t.details || "") + "\n\n" + (t.link || ""));
         var calUrl = "";
         
@@ -1230,7 +1246,15 @@
         if (s === 'Archived') {
    html += '<button class="btn-seen" style="background:#f1f3f4; color:#5f6368; cursor:default;" disabled>Archived</button>';
 } else {
-            if (t.actionReq) {
+            var isInformationItem = cat.toLowerCase().indexOf("information") !== -1;
+            if (isInformationItem) {
+              var infoSeenText = (s === 'Seen') ? "Seen (Click to Undo)" : "Mark Seen";
+              if (s === 'Seen') {
+                  html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Seen\')" class="btn-seen">' + infoSeenText + '</button>';
+              } else {
+                  html += '<button onclick="requestToggleStatus(\'' + t.id + '\', \'Seen\')" class="btn-seen">' + infoSeenText + '</button>';
+              }
+            } else if (t.actionReq) {
               var pendText = (s === 'Pending') ? "Pending... (Click to Undo)" : "Mark Pending";
               var compText = (s === 'Complete') ? "Complete (Click to Undo)" : "Mark Complete";
               
