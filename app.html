@@ -993,7 +993,7 @@
     var dLineD = parseDateOnly(t.deadlineDate);
     if (!dLineD) return false;
     
-    var targetDeadline = getDateTimeOrStartOfDay_(dLineD, parseTimeOnly(t.deadlineTime));
+    var targetDeadline = getOverdueEvaluationDateTime_(dLineD, parseTimeOnly(t.deadlineTime));
     return nowMs > targetDeadline.getTime();
   }
 
@@ -1009,6 +1009,17 @@
   }
 
   function getCountdownDisplayTarget_(dateValue, timeValue) {
+    if (!dateValue) return null;
+    var result = new Date(dateValue.getTime());
+    if (timeValue) {
+      result.setHours(timeValue.getHours(), timeValue.getMinutes(), 0, 0);
+    } else {
+      result.setHours(23, 59, 59, 999);
+    }
+    return result;
+  }
+
+  function getOverdueEvaluationDateTime_(dateValue, timeValue) {
     if (!dateValue) return null;
     var result = new Date(dateValue.getTime());
     if (timeValue) {
