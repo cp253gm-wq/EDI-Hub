@@ -11,21 +11,45 @@
   var selectedFeedbackId = "";
   var feedbackToastTimer = null;
   var appBootstrapped = false;
+  var googleCalendarButtonSvg = '<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g><polygon fill="#FFFFFF" points="195.368421 60.6315789 60.6315789 60.6315789 60.6315789 195.368421 195.368421 195.368421"></polygon><polygon fill="#EA4335" points="195.368421 256 256 195.368421 225.684211 190.196005 195.368421 195.368421 189.835162 223.098002"></polygon><path d="M0 195.368421 L0 235.789474 C0 246.955789 9.04421053 256 20.2105263 256 L60.6315789 256 L66.8568645 225.684211 L60.6315789 195.368421 L27.5991874 190.196005 L0 195.368421 Z" fill="#188038"></path><path d="M256 60.6315789 L256 20.2105263 C256 9.04421053 246.955789 0 235.789474 0 L195.368421 0 C191.679582 15.0358547 189.835162 26.1010948 189.835162 33.1957202 C189.835162 40.2903456 191.679582 49.4356319 195.368421 60.6315789 C208.777986 64.4714866 218.883249 66.3914404 225.684211 66.3914404 C232.485172 66.3914404 242.590435 64.4714866 256 60.6315789 Z" fill="#1967D2"></path><polygon fill="#FBBC04" points="256 60.6315789 195.368421 60.6315789 195.368421 195.368421 256 195.368421"></polygon><polygon fill="#34A853" points="195.368421 195.368421 60.6315789 195.368421 60.6315789 256 195.368421 256"></polygon><path d="M195.368421 0 L20.2105263 0 C9.04421053 0 0 9.04421053 0 20.2105263 L0 195.368421 L60.6315789 195.368421 L60.6315789 60.6315789 L195.368421 60.6315789 L195.368421 0 Z" fill="#4285F4"></path><path d="M88.2694737 165.153684 C83.2336842 161.751579 79.7473684 156.783158 77.8442105 150.214737 L89.5326316 145.397895 C90.5936842 149.44 92.4463158 152.572632 95.0905263 154.795789 C97.7178947 157.018947 100.917895 158.113684 104.656842 158.113684 C108.48 158.113684 111.764211 156.951579 114.509474 154.627368 C117.254737 152.303158 118.635789 149.338947 118.635789 145.751579 C118.635789 142.08 117.187368 139.082105 114.290526 136.757895 C111.393684 134.433684 107.755789 133.271579 103.410526 133.271579 L96.6568421 133.271579 L96.6568421 121.701053 L102.72 121.701053 C106.458947 121.701053 109.608421 120.690526 112.168421 118.669474 C114.728421 116.648421 116.008421 113.886316 116.008421 110.366316 C116.008421 107.233684 114.863158 104.741053 112.572632 102.871579 C110.282105 101.002105 107.385263 100.058947 103.865263 100.058947 C100.429474 100.058947 97.7010526 100.968421 95.68 102.804211 C93.6602819 104.644885 92.1418208 106.968942 91.2673684 109.557895 L79.6968421 104.741053 C81.2294737 100.395789 84.0421053 96.5557895 88.1684211 93.2378947 C92.2947368 89.92 97.5663158 88.2526316 103.966316 88.2526316 C108.698947 88.2526316 112.96 89.1621053 116.732632 90.9978947 C120.505263 92.8336842 123.469474 95.3768421 125.608421 98.6105263 C127.747368 101.861053 128.808421 105.498947 128.808421 109.541053 C128.808421 113.667368 127.814737 117.153684 125.827368 120.016842 C123.84 122.88 121.397895 125.069474 118.501053 126.602105 L118.501053 127.292632 C122.241568 128.834789 125.490747 131.367752 127.898947 134.618947 C130.341053 137.903158 131.570526 141.827368 131.570526 146.408421 C131.570526 150.989474 130.408421 155.082105 128.084211 158.669474 C125.76 162.256842 122.543158 165.086316 118.467368 167.141053 C114.374737 169.195789 109.776842 170.240124 104.673684 170.240124 C98.7621053 170.256842 93.3052632 168.555789 88.2694737 165.153684 Z M160.067368 107.149474 L147.233684 116.429474 L140.816842 106.694737 L163.84 90.0884211 L172.665263 90.0884211 L172.665263 168.421053 L160.067368 168.421053 L160.067368 107.149474 Z" fill="#4285F4"></path></g></svg>';
   var fallbackProfileImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%23fff4ec'/%3E%3Ccircle cx='32' cy='25' r='12' fill='%23d98349'/%3E%3Cpath d='M12 53c2-11 12-18 20-18s18 7 20 18' fill='%23d98349'/%3E%3C/svg%3E";
   var fallbackCategoryIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2212%22%20fill%3D%22%23eef3fb%22/%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2224%22%20r%3D%2210%22%20fill%3D%22%23607a96%22/%3E%3C/svg%3E";
   var avatarColorPalette = ['#c96f3b', '#5f7f96', '#7d8f47', '#b25d73', '#4b7a6f', '#8a6bb8'];
 
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('userDropdown').addEventListener('change', fetchTasks);
-    document.getElementById('statusFilter').addEventListener('change', fetchTasks);
-    document.getElementById('typeFilter').addEventListener('change', renderTasks);
-    document.getElementById('feedbackModal').addEventListener('click', handleOverlayClose_);
-    document.getElementById('feedbackInboxModal').addEventListener('click', handleOverlayClose_);
-    document.addEventListener('click', handleDocumentClick_);
-    document.addEventListener('keydown', handleDocumentKeydown_);
-    window.addEventListener('resize', handleResponsiveGate_);
+  // Guard helpers keep startup from crashing if an expected element or GAS API is unavailable.
+  function getById_(id) {
+    return document.getElementById(id);
+  }
 
-    handleResponsiveGate_();
+  function addEventListenerIfPresent_(id, eventName, handler) {
+    var el = getById_(id);
+    if (el && el.addEventListener) el.addEventListener(eventName, handler);
+    return el;
+  }
+
+  function getScriptRunner_() {
+    if (typeof google !== 'undefined' && google && google.script && google.script.run) {
+      return google.script.run;
+    }
+    return null;
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      addEventListenerIfPresent_('userDropdown', 'change', fetchTasks);
+      addEventListenerIfPresent_('statusFilter', 'change', fetchTasks);
+      addEventListenerIfPresent_('typeFilter', 'change', renderTasks);
+      initTypeFilterButtons_();
+      addEventListenerIfPresent_('feedbackModal', 'click', handleOverlayClose_);
+      addEventListenerIfPresent_('feedbackInboxModal', 'click', handleOverlayClose_);
+      document.addEventListener('click', handleDocumentClick_);
+      document.addEventListener('keydown', handleDocumentKeydown_);
+      window.addEventListener('resize', handleResponsiveGate_);
+      handleResponsiveGate_();
+    } catch (error) {
+      console.error('App startup error:', error);
+      setTaskContainerHtml('<div class="loading">Unable to start the app interface.</div>');
+    }
   });
 
   function isMobileViewport_() {
@@ -34,8 +58,13 @@
 
   function handleResponsiveGate_() {
     var isMobile = isMobileViewport_();
-    var mobileBlock = document.getElementById('mobileBlockScreen');
-    var appShell = document.getElementById('appShell');
+    var mobileBlock = getById_('mobileBlockScreen');
+    var appShell = getById_('appShell');
+
+    if (!mobileBlock || !appShell) {
+      console.warn('Responsive gate skipped: required shell elements are missing.');
+      return;
+    }
 
     if (isMobile) {
       mobileBlock.classList.remove('is-hidden');
@@ -72,7 +101,13 @@
   }
 
   function bootstrapAppAuthFlow() {
-    google.script.run
+    var runner = getScriptRunner_();
+    if (!runner) {
+      console.error('google.script.run is unavailable during bootstrap.');
+      setTaskContainerHtml('<div class="loading">Unable to connect to Google Apps Script services.</div>');
+      return;
+    }
+    runner
       .withSuccessHandler(function(auth) {
         auth = auth || {};
         if (auth.requiresAuthorization) {
@@ -104,6 +139,7 @@
     userDropdown.innerHTML = '<option value=""></option>';
     typeFilter.disabled = true;
     statusFilter.disabled = true;
+    syncTypeFilterButtons_();
     welcomeEl.textContent = "";
     avatarEl.src = fallbackProfileImage;
     avatarEl.classList.add('is-fallback');
@@ -126,7 +162,13 @@
   }
 
   function initializeSignedInUser() {
-    google.script.run
+    var runner = getScriptRunner_();
+    if (!runner) {
+      console.error('google.script.run is unavailable while loading user context.');
+      setTaskContainerHtml('<div class="loading">Unable to load signed-in user context.</div>');
+      return;
+    }
+    runner
       .withSuccessHandler(function(ctx) {
         currentUserContext = ctx || {};
         if (!isCiaFirstDomainEmail((currentUserContext && currentUserContext.email) || "")) {
@@ -164,6 +206,7 @@
     userDropdown.innerHTML = '<option value=""></option>';
     typeFilter.disabled = true;
     statusFilter.disabled = true;
+    syncTypeFilterButtons_();
     adminBadge.classList.add('is-hidden');
     welcomeEl.textContent = "";
     avatarEl.src = fallbackProfileImage;
@@ -224,6 +267,7 @@
     var hasAdminAccess = isAdmin || isSuperAdmin;
     document.getElementById('typeFilter').disabled = false;
     document.getElementById('statusFilter').disabled = false;
+    syncTypeFilterButtons_();
     feedbackButton.classList.remove('is-hidden');
     toolbarUserButton.disabled = false;
 
@@ -251,7 +295,13 @@
     inboxButton.classList.remove('is-hidden');
     viewGroup.classList.remove('is-hidden');
     if (isSuperAdmin) adminBadge.classList.add('super-admin-badge');
-    google.script.run
+    var runner = getScriptRunner_();
+    if (!runner) {
+      console.error('google.script.run is unavailable while loading staff names.');
+      setTaskContainerHtml('<div class="loading">Unable to load staff names.</div>');
+      return;
+    }
+    runner
       .withSuccessHandler(function(names) {
         globalStaffList = names || [];
         var html = '<option value="">-- Select Your Name --</option>';
@@ -298,6 +348,58 @@
       .replace(/>/g, "&gt;")
       .replace(/\"/g, "&quot;")
       .replace(/'/g, "&#39;");
+  }
+
+  function getTypeFilterButtonConfig_() {
+    return [
+      { value: 'Deadline', title: 'Deadlines', className: 'type-filter-deadline', svg: '<svg viewBox="0 0 96 103.92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><clipPath id="deadlineClip"><path d="M 1 0 L 95 0 L 95 95.925781 L 1 95.925781 Z M 1 0" clip-rule="nonzero"/></clipPath></defs><g clip-path="url(#deadlineClip)"><path fill="currentColor" d="M 87.378906 32.210938 L 92.4375 25.839844 C 95.851562 21.539062 93.988281 14.339844 88.230469 9.78125 L 87.175781 8.953125 C 87.507812 8.546875 87.710938 8.011719 87.710938 7.457031 C 87.710938 6.625 87.289062 5.90625 86.660156 5.464844 C 86.273438 5.1875 85.792969 5.039062 85.277344 5.039062 C 84.5 5.039062 83.816406 5.40625 83.375 5.980469 C 77.707031 1.734375 70.566406 1.625 67.222656 5.832031 L 62.167969 12.199219 L 70.085938 18.496094 L 69.328125 19.511719 C 63.125 15.632812 55.78125 13.382812 47.933594 13.382812 C 46.457031 13.382812 45 13.457031 43.578125 13.621094 L 39.5 6.847656 L 41.382812 6.074219 C 42.25 5.722656 42.65625 4.726562 42.289062 3.859375 L 40.550781 1.273438 C 40.203125 0.40625 39.203125 0 38.335938 0.371094 L 31.542969 3.175781 C 30.675781 3.527344 30.269531 4.523438 30.640625 5.390625 L 32.375 7.972656 C 32.726562 8.839844 33.722656 9.246094 34.589844 8.878906 L 36.714844 7.992188 L 40.386719 14.066406 C 35.476562 14.988281 30.863281 16.816406 26.765625 19.34375 L 25.859375 18.253906 L 33.59375 11.8125 L 28.386719 5.574219 C 24.917969 1.402344 17.609375 1.734375 11.996094 6.292969 C 11.609375 5.722656 11 5.316406 10.316406 5.222656 C 9.652344 5.132812 9.027344 5.316406 8.546875 5.683594 C 7.84375 6.203125 7.421875 7.105469 7.605469 8.066406 C 7.695312 8.566406 7.957031 9.027344 8.304688 9.359375 L 7.511719 10.003906 C 1.863281 14.710938 0.148438 21.945312 3.671875 26.171875 L 8.878906 32.410156 L 17 25.636719 L 17.90625 26.726562 C 11.445312 33.886719 7.511719 43.375 7.511719 53.769531 C 7.511719 65.359375 12.386719 75.804688 20.191406 83.171875 L 19.011719 84.851562 L 16.039062 89.097656 C 15.246094 90.222656 15.523438 91.773438 16.648438 92.546875 L 18.9375 94.152344 C 20.0625 94.949219 21.613281 94.671875 22.390625 93.542969 L 26.320312 87.933594 C 32.578125 91.902344 39.980469 94.191406 47.933594 94.191406 C 55.761719 94.191406 63.050781 91.957031 69.253906 88.117188 L 70.621094 90.054688 L 73.5 94.171875 C 74.292969 95.296875 75.824219 95.574219 76.953125 94.78125 L 79.238281 93.175781 C 80.367188 92.382812 80.644531 90.851562 79.847656 89.722656 L 76.617188 85.128906 L 75.4375 83.449219 C 83.394531 76.066406 88.375 65.527344 88.375 53.804688 C 88.375 43.503906 84.519531 34.089844 78.167969 26.96875 L 79.128906 25.675781 Z M 82.949219 53.785156 C 82.949219 63.125 79.3125 71.910156 72.707031 78.519531 C 66.097656 85.128906 57.3125 88.765625 47.972656 88.765625 C 47.953125 88.765625 47.933594 88.765625 47.898438 88.765625 C 38.578125 88.746094 29.808594 85.109375 23.21875 78.519531 C 16.613281 71.910156 12.976562 63.125 12.976562 53.785156 C 12.976562 44.445312 16.613281 35.660156 23.21875 29.050781 C 29.808594 22.464844 38.578125 18.828125 47.898438 18.808594 C 47.917969 18.808594 47.933594 18.808594 47.972656 18.808594 C 57.3125 18.808594 66.097656 22.445312 72.707031 29.050781 C 79.296875 35.660156 82.949219 44.445312 82.949219 53.785156 Z M 79.074219 54.96875 L 70.289062 54.96875 L 70.289062 52.972656 L 79.074219 52.972656 Z M 49.117188 22.667969 L 49.117188 31.453125 L 47.125 31.453125 L 47.125 22.667969 Z M 16.832031 52.625 L 25.621094 52.625 L 25.621094 54.617188 L 16.832031 54.617188 Z M 46.789062 84.90625 L 46.789062 76.121094 L 48.785156 76.121094 L 48.785156 84.90625 Z M 75.492188 38.742188 L 71.359375 41.125 L 70.824219 40.183594 L 74.957031 37.800781 Z M 32.890625 26.246094 L 35.273438 30.382812 L 34.332031 30.917969 L 31.949219 26.78125 Z M 20.414062 68.847656 L 24.550781 66.464844 L 25.085938 67.40625 L 20.949219 69.789062 Z M 63.015625 81.324219 L 60.632812 77.191406 L 61.574219 76.65625 L 63.957031 80.789062 Z M 64.269531 26.984375 L 61.890625 31.121094 L 60.949219 30.585938 L 63.328125 26.449219 Z M 21.132812 37.46875 L 25.269531 39.851562 L 24.734375 40.792969 L 20.597656 38.410156 Z M 31.636719 80.605469 L 34.019531 76.472656 L 34.960938 77.007812 L 32.578125 81.140625 Z M 74.753906 70.121094 L 70.621094 67.742188 L 71.15625 66.800781 L 75.289062 69.179688 Z M 75.714844 63.511719 L 46.902344 53.710938 L 47.253906 52.679688 L 76.066406 62.480469 Z M 49.558594 53.75 L 49.191406 54.839844 L 48.839844 55.871094 L 46.253906 56.277344 L 44.910156 54.46875 L 42.378906 27.023438 L 42.933594 26.929688 L 43.0625 26.910156 L 43.632812 26.820312 Z M 49.558594 53.75" fill-opacity="1" fill-rule="nonzero"/></g></svg>' },
+      { value: 'Task', title: 'Tasks', className: 'type-filter-task', svg: '<svg viewBox="0 0 96 95.93" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M48.36.04c-.63-.03-1.27.02-1.92.14-3.29.59-5.92 3.14-6.6 6.42-.28 1.33-.19 2.64.13 3.86h-8.72c-.28 0-.55.05-.8.16-.25.1-.48.26-.67.45-.2.2-.35.42-.46.67-.1.25-.16.52-.16.8v6.25c0 3.43 2.82 6.25 6.25 6.25H60.5c3.43 0 6.25-2.82 6.25-6.25v-4.17H73c3.48 0 6.25 2.78 6.25 6.25v64.6c0 3.48-2.77 6.25-6.25 6.25H22.99c-3.48 0-6.25-2.77-6.25-6.25v-64.6c0-3.48 2.77-6.25 6.25-6.25.28 0 .55-.05.81-.15.26-.1.48-.25.68-.45.2-.2.35-.42.46-.68.1-.26.16-.52.16-.8 0-.28-.05-.54-.16-.8-.11-.26-.26-.49-.46-.68-.2-.2-.42-.35-.68-.46-.26-.1-.53-.15-.81-.15-5.73 0-10.42 4.69-10.42 10.42v64.6c0 5.73 4.69 10.42 10.42 10.42H73c5.73 0 10.42-4.69 10.42-10.42v-64.6c0-5.73-4.69-10.42-10.42-10.42h-8.34c-.27 0-.54.05-.8.16-.25.1-.48.26-.67.45-.2.2-.35.42-.46.67-.1.25-.15.52-.15.8v6.25c0 1.18-.91 2.08-2.09 2.08H35.49c-1.18 0-2.08-.9-2.08-2.08v-4.17h9.94c.41 0 .79-.11 1.14-.34.34-.22.6-.52.77-.9.17-.37.22-.77.15-1.17-.06-.41-.24-.76-.51-1.07-.85-.94-1.27-2.2-.97-3.69.32-1.55 1.7-2.89 3.26-3.17 2.77-.5 4.98 1.5 4.98 4.1 0 1.08-.4 2.03-1.07 2.77-.19.2-.33.44-.42.7-.09.26-.14.53-.12.8.01.28.08.54.2.79.12.25.28.47.48.66.2.18.43.32.69.41.26.1.53.14.81.12.27-.01.53-.08.78-.2.25-.12.47-.29.65-.49 1.34-1.47 2.15-3.44 2.15-5.57 0-4.46-3.6-8.11-7.98-8.32zm-.36 35.42c-12.62 0-22.92 10.3-22.92 22.92 0 12.62 10.3 22.92 22.92 22.92 12.62 0 22.92-10.3 22.92-22.92 0-12.62-10.3-22.92-22.92-22.92zm0 4.17c10.36 0 18.75 8.39 18.75 18.75S58.36 77.13 48 77.13 29.24 68.74 29.24 58.38 37.64 39.63 48 39.63zm10.42 10.39c-.65 0-1.18.25-1.59.75L45.76 63.69l-6.75-6.48c-.2-.2-.42-.37-.68-.48-.26-.11-.54-.17-.82-.17-.29 0-.56.05-.83.16-.26.11-.49.27-.69.48-.2.2-.35.44-.45.71-.1.26-.14.54-.13.83.02.28.09.56.21.81.13.26.3.48.52.67l8.33 8c.2.2.45.35.71.45.27.1.55.14.83.13.28-.01.56-.08.81-.21.26-.12.48-.3.67-.51l12.5-14.59c.27-.31.44-.67.5-1.07.06-.41 0-.8-.17-1.18-.17-.37-.42-.67-.77-.9-.35-.21-.73-.32-1.14-.31z"/></svg>' },
+      { value: 'Event', title: 'Events', className: 'type-filter-event', svg: '<svg viewBox="0 0 96 95.93" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M79.74 5.64h-3.53V2.82C76.21 1.26 74.95 0 73.39 0S70.57 1.26 70.57 2.82v2.82H25.43V2.82C25.43 1.26 24.16 0 22.61 0c-1.56 0-2.82 1.26-2.82 2.82v2.82h-3.52C7.32 5.64.04 12.92.04 21.87V79.7c0 8.95 7.28 16.22 16.22 16.22h63.48c8.94 0 16.22-7.27 16.22-16.22V21.87c0-8.95-7.28-16.23-16.22-16.23zm10.58 74.06c0 5.84-4.75 10.59-10.58 10.59H16.26c-5.84 0-10.58-4.75-10.58-10.59V33.86h84.64zm0-51.49H5.68v-6.35c0-5.84 4.74-10.58 10.58-10.58h3.52v5.64c0 1.56 1.26 2.82 2.82 2.82 1.55 0 2.82-1.26 2.82-2.82v-5.64h45.14v5.64c0 1.56 1.27 2.82 2.82 2.82 1.56 0 2.82-1.26 2.82-2.82v-5.64h3.53c5.83 0 10.58 4.74 10.58 10.58z"/><path fill="currentColor" d="M37.14 65.6l-1.59 9.3c-.4 2.3 2.02 4.06 4.09 2.97L48 73.48l8.36 4.39c2.07 1.09 4.49-.67 4.09-2.97l-1.59-9.3 6.76-6.59c1.67-1.63.75-4.48-1.57-4.81l-9.34-1.36-4.18-8.46c-1.03-2.09-4.03-2.09-5.06 0l-4.18 8.46-9.34 1.36c-2.31.34-3.24 3.18-1.57 4.81z"/></svg>' },
+      { value: 'Information', title: 'Information', className: 'type-filter-information', svg: '<svg viewBox="0 0 96 95.93" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M59.61 67.05l-1.82-.81c-.4-.2-.9-.1-1.31.2-1.92 1.72-3.63 2.52-4.95 2.93-1.21.4-2.32-.71-2.02-1.92l7.57-28.18c.1-.5.1-1.11-.2-1.51-.41-.61-1.01-1.01-1.72-1.01h-.3L39.82 39.28c-1.01.2-1.72 1.11-1.61 2.22l.2 1.62c.1.91.91 1.62 1.92 1.62h2.63l-6.97 25.44v.1c-.2 1.11-.31 2.83.61 4.55 1.71 3.23 4.95 3.84 8.28 3.84 8.38 0 13.53-6.56 15.25-10.1.4-.51.1-1.22-.51-1.52z"/><path fill="currentColor" d="M52.64 33.22c4.34 0 7.88-3.54 7.88-7.88 0-4.34-3.54-7.87-7.88-7.87-4.34 0-7.87 3.53-7.87 7.87 0 4.34 3.53 7.88 7.87 7.88z"/><path fill="currentColor" d="M48 0C21.54 0 .04 21.51.04 47.96.04 74.42 21.54 95.93 48 95.93c26.46 0 47.96-21.51 47.96-47.97C95.96 21.51 74.46 0 48 0zm0 88.76c-22.52 0-40.79-18.28-40.79-40.8S25.48 7.17 48 7.17c22.52 0 40.79 18.28 40.79 40.79 0 22.52-18.27 40.8-40.79 40.8z"/></svg>' },
+      { value: 'Vacation', title: 'Vacations', className: 'type-filter-vacation', svg: '<svg viewBox="0 0 96 95.93" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M44.78 83.11v9.59c0 1.77 1.43 3.2 3.2 3.2 1.76 0 3.19-1.43 3.19-3.2v-9.59c0-1.77-1.43-3.2-3.19-3.2-1.77 0-3.2 1.43-3.2 3.2zm37.11-5.78l-6.79-6.79c-1.25-1.25-3.27-1.25-4.52 0-1.25 1.25-1.25 3.27 0 4.52l6.79 6.78c1.24 1.25 3.27 1.25 4.52 0 1.25-1.24 1.25-3.27 0-4.51zM20.84 70.55l-6.78 6.78c-1.25 1.25-1.25 3.27 0 4.52 1.25 1.25 3.27 1.25 4.52 0l6.78-6.78c1.25-1.25 1.25-3.27 0-4.52-1.24-1.25-3.27-1.25-4.52 0zM47.98 22.36c-14.12 0-25.58 11.46-25.58 25.58 0 14.12 11.46 25.58 25.58 25.58 14.12 0 25.58-11.46 25.58-25.58 0-14.12-11.46-25.58-25.58-25.58zm0 6.39c10.59 0 19.18 8.59 19.18 19.18S58.57 67.12 47.98 67.12 28.79 58.53 28.79 47.94s8.6-19.19 19.19-19.19zm44.76 15.99h-9.59c-1.77 0-3.2 1.43-3.2 3.2 0 1.77 1.43 3.2 3.2 3.2h9.59c1.77 0 3.2-1.43 3.2-3.2 0-1.77-1.43-3.2-3.2-3.2zM12.8 44.74H3.21c-1.76 0-3.2 1.43-3.2 3.2 0 1.77 1.44 3.2 3.2 3.2h9.59c1.77 0 3.2-1.43 3.2-3.2 0-1.77-1.43-3.2-3.2-3.2zm64.57-30.72l-6.78 6.78c-1.25 1.25-1.25 3.27 0 4.52 1.24 1.25 3.27 1.25 4.52 0l6.79-6.79c1.25-1.24 1.25-3.27 0-4.51-1.25-1.25-3.28-1.25-4.53 0zM25.36 20.8l-6.78-6.78c-1.25-1.25-3.27-1.25-4.52 0-1.25 1.24-1.25 3.27 0 4.51l6.78 6.79c1.25 1.25 3.27 1.25 4.52 0 1.25-1.25 1.25-3.27 0-4.52zM44.78 3.17v9.59c0 1.77 1.43 3.2 3.2 3.2 1.76 0 3.19-1.43 3.19-3.2V3.17c0-1.77-1.43-3.2-3.19-3.2-1.77 0-3.2 1.43-3.2 3.2z"/></svg>' },
+      { value: 'All', title: 'View All', className: 'type-filter-all', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/></svg>' }
+    ];
+  }
+
+  function initTypeFilterButtons_() {
+    var container = document.getElementById('typeFilterButtons');
+    if (!container) return;
+    var config = getTypeFilterButtonConfig_();
+    var html = '';
+    for (var i = 0; i < config.length; i++) {
+      html += '<button type="button" class="type-filter-btn ' + config[i].className + '" data-value="' + config[i].value + '" title="' + config[i].title + '" aria-pressed="false">' + config[i].svg + '</button>';
+    }
+    container.innerHTML = html;
+
+    var buttons = container.querySelectorAll('.type-filter-btn');
+    for (var j = 0; j < buttons.length; j++) {
+      buttons[j].addEventListener('click', function() {
+        if (this.disabled) return;
+        setTypeFilter_(this.getAttribute('data-value') || 'All');
+      });
+    }
+    syncTypeFilterButtons_();
+  }
+
+  function setTypeFilter_(value) {
+    var typeFilter = document.getElementById('typeFilter');
+    if (!typeFilter) return;
+    typeFilter.value = value || 'All';
+    syncTypeFilterButtons_();
+    renderTasks();
+  }
+
+  function syncTypeFilterButtons_() {
+    var typeFilter = document.getElementById('typeFilter');
+    var buttons = document.querySelectorAll('#typeFilterButtons .type-filter-btn');
+    if (!typeFilter || !buttons.length) return;
+    var currentValue = typeFilter.value || 'All';
+    for (var i = 0; i < buttons.length; i++) {
+      var isActive = buttons[i].getAttribute('data-value') === currentValue;
+      buttons[i].classList.toggle('is-active', isActive);
+      buttons[i].setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      buttons[i].disabled = !!typeFilter.disabled;
+    }
   }
 
   function isFeedbackAdmin_() {
@@ -625,17 +727,30 @@
   }
 
   function fetchTasks() {
-  var user = document.getElementById('userDropdown').value;
+  var userDropdown = getById_('userDropdown');
+  var statusFilterEl = getById_('statusFilter');
+  var runner = getScriptRunner_();
+  if (!userDropdown || !statusFilterEl) {
+    console.warn('fetchTasks skipped: required filter elements are missing.');
+    return;
+  }
+  var user = userDropdown.value;
   if (!user) return;
   activeViewedUser = user;
   updateToolbarIdentity();
 
   setTaskContainerHtml(renderTaskSkeletons(4));
 
-  var statusFilter = document.getElementById('statusFilter').value;
+  var statusFilter = statusFilterEl.value;
   var includeArchived = (statusFilter === "Archived" || statusFilter === "All");
 
-  google.script.run
+  if (!runner) {
+    console.error('google.script.run is unavailable while loading tasks.');
+    setTaskContainerHtml('<div class="loading">Unable to load items right now.</div>');
+    return;
+  }
+
+  runner
     .withSuccessHandler(function(tasks) {
       globalTasks = tasks || [];
       renderTasks();
@@ -692,7 +807,7 @@
     pendingAction = { id: itemId, status: targetStatus };
     document.getElementById('modalTitle').innerText = "Mark as " + targetStatus + "?";
     var targetList = (targetStatus === 'Complete') ? "Completed Items" : "Seen Items";
-    document.getElementById('modalMessage').innerHTML = "Are you sure you want to mark this item as " + targetStatus + "?<br><br>It will be moved out of your Active filter and into the " + targetList + " list.";
+    document.getElementById('modalMessage').innerHTML = "Are you sure you want to mark this item as " + targetStatus + "?<br><br>It will be moved out of your Active Items list and into the " + targetList + " list.";
     document.getElementById('customModal').classList.add('active');
   }
 
@@ -947,6 +1062,7 @@
   function renderTasks() {
     var statusFilter = document.getElementById('statusFilter').value;
     var typeFilter = document.getElementById('typeFilter').value;
+    syncTypeFilterButtons_();
     var container = document.getElementById('taskContainer');
     var currentUser = document.getElementById('userDropdown').value; 
     
@@ -1278,28 +1394,40 @@
           }
         }
         
-        html += '<div class="card-buttons">';
+        var cardButtonsClassName = 'card-buttons' + ((overdueTagHtml || archiveTagHtml || timeRemainingTagHtml) ? ' card-buttons-with-tags' : '');
+        html += '<div class="' + cardButtonsClassName + '">';
         
         if (s === 'Archived') {
    html += '<button class="btn-seen" style="background:#f1f3f4; color:#5f6368; cursor:default;" disabled>Archived</button>';
 } else {
             var isInformationItem = cat.toLowerCase().indexOf("information") !== -1;
-            if (isInformationItem) {
+            var isDeadlineItem = cat.toLowerCase().indexOf("deadline") !== -1;
+            var isTaskItem = cat.toLowerCase().indexOf("task") !== -1;
+            var isEventItem = cat.toLowerCase().indexOf("event") !== -1;
+            if (isDeadlineItem) {
+              var deadlinePendText = (s === 'Pending') ? "Pending... (Click to Undo)" : "Mark Pending";
+              var deadlineCompText = (s === 'Complete') ? "Complete (Click to Undo)" : "Mark Complete";
+              if (s === 'Complete') {
+                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + deadlineCompText + '</button>';
+              } else {
+                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Pending\')" class="btn-pending">' + deadlinePendText + '</button>';
+                 html += '<button onclick="requestToggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + deadlineCompText + '</button>';
+              }
+            } else if (isTaskItem) {
+              var taskPendText = (s === 'Pending') ? "Pending... (Click to Undo)" : "Mark Pending";
+              var taskCompText = (s === 'Complete') ? "Complete (Click to Undo)" : "Mark Complete";
+              if (s === 'Complete') {
+                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + taskCompText + '</button>';
+              } else {
+                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Pending\')" class="btn-pending">' + taskPendText + '</button>';
+                 html += '<button onclick="requestToggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + taskCompText + '</button>';
+              }
+            } else if (isInformationItem || isEventItem) {
               var infoSeenText = (s === 'Seen') ? "Seen (Click to Undo)" : "Mark Seen";
               if (s === 'Seen') {
                   html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Seen\')" class="btn-seen">' + infoSeenText + '</button>';
               } else {
                   html += '<button onclick="requestToggleStatus(\'' + t.id + '\', \'Seen\')" class="btn-seen">' + infoSeenText + '</button>';
-              }
-            } else if (t.actionReq) {
-              var pendText = (s === 'Pending') ? "Pending... (Click to Undo)" : "Mark Pending";
-              var compText = (s === 'Complete') ? "Complete (Click to Undo)" : "Mark Complete";
-              
-              if (s === 'Complete') {
-                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + compText + '</button>';
-              } else {
-                 html += '<button onclick="toggleStatus(\'' + t.id + '\', \'Pending\')" class="btn-pending">' + pendText + '</button>';
-                 html += '<button onclick="requestToggleStatus(\'' + t.id + '\', \'Complete\')" class="btn-action">' + compText + '</button>';
               }
             } else {
               var seenText = (s === 'Seen') ? "Seen (Click to Undo)" : "Mark Seen";
@@ -1313,7 +1441,7 @@
         }
 
        if (calUrl && s !== 'Archived') {
-  html += '<a href="' + calUrl + '" target="_blank" class="btn-calendar">📅&nbsp; Add to Calendar</a>';
+  html += '<a href="' + calUrl + '" target="_blank" class="btn-calendar calendar-btn"><span class="btn-calendar-icon calendar-icon">' + googleCalendarButtonSvg + '</span><span class="btn-calendar-label calendar-label"><span>Add to Google Calendar</span></span></a>';
 }
         
         var bottomTagsHtml = archiveTagHtml + timeRemainingTagHtml + overdueTagHtml;

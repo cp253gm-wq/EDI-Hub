@@ -567,10 +567,10 @@ var includeArchived = options.includeArchived === true;
           displayDate = Utilities.formatDate(primaryEnd, Session.getScriptTimeZone(), "EEE dd/MM/yyyy");
         }
 
-        // Calculate 72-Hour / 2-Week Archive rule
+        // Calculate dated-item / 2-week archive rule
         var now = new Date();
         var msInHour = 60 * 60 * 1000;
-        var ms72Hours = 72 * msInHour;
+        var ms24Hours = 24 * msInHour;
         var ms2Weeks = 14 * 24 * msInHour;
 
         var archiveLabel = "";
@@ -583,6 +583,7 @@ var includeArchived = options.includeArchived === true;
         var isTaskCategory = categoryLower.indexOf("task") !== -1;
         var isVacationCategory = categoryLower.indexOf("vacation") !== -1;
         var deadlineTargetDate = null;
+        var datedArchiveBaseDate = null;
         var vacationArchiveTargetDate = null;
 
         if ((isDeadlineCategory || isTaskCategory) && isValidDate(deadlineDate ? new Date(deadlineDate) : null)) {
@@ -600,6 +601,11 @@ var includeArchived = options.includeArchived === true;
           }
         }
 
+        if (!isVacationCategory && isValidDate(activeTargetDate)) {
+          datedArchiveBaseDate = new Date(activeTargetDate);
+          datedArchiveBaseDate.setHours(23, 59, 59, 999);
+        }
+
         if (isVacationCategory) {
           var vacationArchiveBase = vacationEndDate || vacationStartDate;
           if (isValidDate(vacationArchiveBase ? new Date(vacationArchiveBase) : null)) {
@@ -608,15 +614,18 @@ var includeArchived = options.includeArchived === true;
           }
         }
 
-        var archiveTargetDate = isDeadlineCategory ? null : (deadlineTargetDate || vacationArchiveTargetDate || activeTargetDate);
-        archiveSortDate = archiveTargetDate || archiveSortDate;
+        archiveSortDate = (vacationArchiveTargetDate || datedArchiveBaseDate || archiveSortDate);
 
-        if (isValidDate(archiveTargetDate)) {
-          var timeSinceExpiry = now.getTime() - archiveTargetDate.getTime();
-          if (isVacationCategory ? timeSinceExpiry > 0 : timeSinceExpiry >= ms72Hours) {
+        if (isVacationCategory && isValidDate(vacationArchiveTargetDate)) {
+          if (now.getTime() > vacationArchiveTargetDate.getTime()) {
             isArchived = true;
-          } else if (timeSinceExpiry > 0 && !isVacationCategory) {
-            var remaining = ms72Hours - timeSinceExpiry;
+          }
+        } else if (!isDeadlineCategory && isValidDate(datedArchiveBaseDate)) {
+          var timeSinceFinalDay = now.getTime() - datedArchiveBaseDate.getTime();
+          if (timeSinceFinalDay >= ms24Hours) {
+            isArchived = true;
+          } else if (timeSinceFinalDay > 0) {
+            var remaining = ms24Hours - timeSinceFinalDay;
             var hours = Math.ceil(remaining / msInHour);
             archiveLabel = hours > 24 ? "Archiving in " + Math.ceil(hours / 24) + " days..." : "Archiving in " + hours + " hours...";
           }
@@ -627,7 +636,7 @@ var includeArchived = options.includeArchived === true;
             archiveSortDate = dAddedValid;
             if (timeSinceAdded >= ms2Weeks) {
               isArchived = true;
-            } else if (timeSinceAdded >= (ms2Weeks - ms72Hours)) {
+            } else if (timeSinceAdded >= (ms2Weeks - (72 * msInHour))) {
               var remaining = ms2Weeks - timeSinceAdded;
               var hours = Math.ceil(remaining / msInHour);
               archiveLabel = hours > 24 ? "Archiving in " + Math.ceil(hours / 24) + " days..." : "Archiving in " + hours + " hours...";

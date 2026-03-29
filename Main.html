@@ -21,14 +21,18 @@
         <img src="<?!= logoData ?>" alt="Logo" id="appLogo">
       </div>
       <div class="toolbar-controls">
-        <select id="typeFilter">
-          <option value="All">All Types</option>
-          <option value="Deadline">Deadline</option>
-          <option value="Task">Task</option>
-          <option value="Event">Event</option>
-          <option value="Information">Information</option>
-          <option value="Vacation">Vacation</option>
-        </select>
+        <div class="toolbar-filter-group">
+          <span class="toolbar-filter-label">Filter By:</span>
+          <select id="typeFilter" class="is-hidden" aria-hidden="true" tabindex="-1">
+            <option value="All">All Types</option>
+            <option value="Deadline">Deadline</option>
+            <option value="Task">Task</option>
+            <option value="Event">Event</option>
+            <option value="Information">Information</option>
+            <option value="Vacation">Vacation</option>
+          </select>
+          <div id="typeFilterButtons" class="type-filter-buttons" role="group" aria-label="Filter by type"></div>
+        </div>
         <select id="statusFilter">
           <option value="Active">View Status: Active</option>
           <option value="Seen">View Status: Seen</option>
@@ -99,10 +103,14 @@
     </footer>
 
     <div class="modal-overlay" id="customModal">
-      <div class="modal-dialog">
-        <div class="modal-title" id="modalTitle">Confirm Action</div>
-        <div class="modal-message" id="modalMessage">Are you sure?</div>
-        <div class="modal-actions">
+      <div class="modal-dialog confirmation-modal-dialog">
+        <div class="confirmation-modal-header">
+          <div class="confirmation-modal-copy modal-content">
+            <div class="modal-title" id="modalTitle">Confirm Action</div>
+            <div class="modal-message modal-body" id="modalMessage">Are you sure?</div>
+          </div>
+        </div>
+        <div class="modal-actions confirmation-modal-actions">
           <button class="btn-modal-cancel" onclick="closeModal()">Cancel</button>
           <button class="btn-modal-confirm" id="modalConfirmBtn" onclick="executeModalAction()">Confirm</button>
         </div>

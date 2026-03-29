@@ -98,7 +98,78 @@
       .logo-container { flex: 1; display: flex; align-items: center; }
       .logo-container img { height: 40px; } 
       
-      .toolbar-controls { flex: 2; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+      .toolbar-controls { flex: 2; display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+      .toolbar-filter-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: nowrap;
+      }
+      .toolbar-filter-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #1f2937;
+        white-space: nowrap;
+      }
+      .type-filter-buttons {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .type-filter-btn {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: 1px solid currentColor;
+        border-radius: 14px;
+        background: #eff3f8;
+        color: #6f7f98;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 4px 10px rgba(15, 23, 42, 0.04);
+        cursor: pointer;
+        transition: transform 0.16s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: none;
+      }
+      .type-filter-btn svg {
+        width: 23px;
+        height: 23px;
+        display: block;
+      }
+      .type-filter-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+      }
+      .type-filter-btn.is-active {
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92), 0 10px 18px rgba(15, 23, 42, 0.1);
+      }
+      .type-filter-btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+        transform: none;
+        box-shadow: none;
+      }
+      .type-filter-btn.type-filter-deadline { background: #ffd8d4; color: #ef6d60; border-color: #f5b0a7; }
+      .type-filter-btn.type-filter-deadline.is-active,
+      .type-filter-btn.type-filter-deadline:hover { background: #ffc7c0; color: #e75a4f; }
+      .type-filter-btn.type-filter-task { background: #daf6ce; color: #6fc76a; border-color: #aee2a5; }
+      .type-filter-btn.type-filter-task.is-active,
+      .type-filter-btn.type-filter-task:hover { background: #cbf0bc; color: #5fb75a; }
+      .type-filter-btn.type-filter-event { background: #f0cbfb; color: #c47de7; border-color: #ddacef; }
+      .type-filter-btn.type-filter-event.is-active,
+      .type-filter-btn.type-filter-event:hover { background: #e9b9f7; color: #b768de; }
+      .type-filter-btn.type-filter-information { background: #d9ebff; color: #78adff; border-color: #afcfff; }
+      .type-filter-btn.type-filter-information.is-active,
+      .type-filter-btn.type-filter-information:hover { background: #c8e0ff; color: #6098f8; }
+      .type-filter-btn.type-filter-vacation { background: #fdf0b6; color: #f4c77a; border-color: #f4c77a; }
+      .type-filter-btn.type-filter-vacation.is-active,
+      .type-filter-btn.type-filter-vacation:hover { background: #fae8a4; color: #efbc67; }
+      .type-filter-btn.type-filter-all { background: #e8eef7; color: #7b8ba4; border-color: #c5d2e4; }
+      .type-filter-btn.type-filter-all.is-active,
+      .type-filter-btn.type-filter-all:hover { background: #dbe4f1; color: #63748f; }
       .toolbar-user {
         position: relative;
         margin-left: 12px;
@@ -516,7 +587,8 @@
       
       .bottom-tag-stack { position: absolute; bottom: 20px; right: 24px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; z-index: 1; }
       
-      .card-buttons { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;}
+      .card-buttons { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-height: 36px;}
+      .card-buttons.card-buttons-with-tags { padding-right: 172px; }
       
       .btn-action, .btn-pending, .btn-seen, .btn-calendar {
         height: 36px; min-height: 36px; max-height: 36px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
@@ -529,8 +601,58 @@
       .btn-pending:hover { background-color: var(--warning-hover); transform: translateY(-1px); }
       .btn-seen { background-color: var(--seen-bg); color: var(--seen-text); border: 1px solid #c3d7fa; } 
       .btn-seen:hover { background-color: #c7dbff; transform: translateY(-1px); }
-      .btn-calendar { background-color: var(--primary); color: #fff; box-shadow: 0 4px 10px rgba(27, 102, 209, 0.25); }
-      .btn-calendar:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+/* ===== FINAL GOOGLE CALENDAR BUTTON ===== */
+
+.calendar-btn,
+.btn-calendar {
+  display: inline-flex;
+  align-items: center;
+  height: 36px; /* EXACT same as other buttons */
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+/* ICON (same height as buttons) */
+.calendar-icon,
+.btn-calendar-icon {
+  width: 36px;
+  height: 36px;
+  position: relative;
+  z-index: 2;
+}
+
+.calendar-icon svg,
+.btn-calendar-icon svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.35));
+}
+
+/* BLUE STRIP */
+.calendar-label,
+.btn-calendar-label {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #3c78d8, #2a6ed1);
+  padding: 0 10px 0 16px;
+  margin-left: -10px;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* TEXT */
+.calendar-label span,
+.btn-calendar-label span {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+}
 
       .task-card.card-urgent {
         border-left-color: #cf6e1d !important;
@@ -618,7 +740,9 @@
       
       /* --- NEW: SOLID BLACK MODAL --- */
       .modal-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
+      .modal-content { max-width: 500px; width: 94%; }
       .modal-body label, .info-label { color: #000000 !important; font-weight: 600; }
+      .modal-body { font-size: 16px; line-height: 1.5; max-width: none; }
       
       .modal-message { font-size: 14px; color: #5c6b80; margin-bottom: 24px; line-height: 1.55; }
       .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
@@ -821,6 +945,88 @@
       .btn-modal-confirm { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; box-shadow: 0 2px 8px rgba(27, 102, 209, 0.25); }
       .btn-modal-confirm:hover { background-color: var(--primary-hover); }
 
+/* ===== CLEAN FINAL CUSTOM MODAL STYLES ===== */
+
+#customModal .confirmation-modal-dialog {
+  max-width: 460px;
+  padding: 24px 24px 20px 28px;
+  border-radius: 20px;
+  border: 1px solid #e5ecf5;
+  border-left: 6px solid #e39a5b;
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.16), 0 6px 14px rgba(15, 23, 42, 0.07);
+}
+
+#customModal .confirmation-modal-header {
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+#customModal .confirmation-modal-copy {
+  max-width: none;
+  width: 100%;
+}
+
+#customModal .modal-title {
+  text-align: left;
+  font-size: 20px;
+  line-height: 1.22;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  margin-bottom: 18px;
+}
+
+#customModal .modal-message {
+  margin: 0;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.5;
+  max-width: none;
+  color: #5f6f84;
+}
+
+#customModal .modal-message br {
+  display: block;
+  content: "";
+  height: 8px;
+}
+
+#customModal .confirmation-modal-actions {
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+#customModal .btn-modal-cancel,
+#customModal .btn-modal-confirm {
+  min-width: 128px;
+  min-height: 42px;
+  padding: 0 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+#customModal .btn-modal-cancel {
+  background: #ffffff;
+  border: 1px solid #d6e0ec;
+  color: #334155;
+}
+
+#customModal .btn-modal-cancel:hover {
+  background-color: #f5f8fc;
+}
+
+#customModal .btn-modal-confirm {
+  background: #1a73e8;
+  border: 1px solid #1967d2;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(27, 102, 209, 0.2);
+}
+
+#customModal .btn-modal-confirm:hover {
+  background-color: #1967d2;
+}
+
       @media (max-width: 900px) {
         .app-toolbar {
           flex-wrap: wrap;
@@ -834,6 +1040,20 @@
           flex-wrap: wrap;
           gap: 8px;
         }
+        .toolbar-filter-group {
+          width: 100%;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .type-filter-buttons {
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .card-buttons.card-buttons-with-tags {
+          padding-right: 0;
+          padding-bottom: 44px;
+        }
+
         .toolbar-user {
           margin-left: 0;
           width: 100%;
