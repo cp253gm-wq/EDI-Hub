@@ -1295,6 +1295,7 @@
                            '<span id="assign-full-' + t.id + '" style="display:none;">' + fullListFormatted + ' <a class="toggle-link" onclick="toggleAssign(\'' + t.id + '\')">less...</a></span>';
           }
           html += '<div class="inline-section"><b>Assigned to:</b> <span>' + assignedHtml + '</span></div>';
+          html += '<div class="inline-section"><b>Date Added:</b> <span>' + formatD(parseDateOnly(t.dateAdded)) + '</span></div>';
         }
 
         if (t.details) {
