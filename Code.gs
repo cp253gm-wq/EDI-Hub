@@ -24,7 +24,7 @@
  * ============================================================================
  */
 
-const APP_VERSION = "V2.5.3";
+const APP_VERSION = "v2.7.3";
 const APP_COMMIT = "live";
 const APP_COPYRIGHT_YEAR = new Date().getFullYear().toString();
 const FEEDBACK_SHEET_NAME = "Feedback";
